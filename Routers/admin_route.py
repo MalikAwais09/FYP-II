@@ -1,0 +1,16 @@
+from fastapi import APIRouter, UploadFile, File, Depends
+from sqlalchemy.orm import Session
+from db import get_db
+from Controllers.AdminController import AdminController
+router = APIRouter()
+
+@router.post("/upload-course-enrollment/")
+async def upload_course(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    Upload Excel file for course enrollment.
+    """
+    return await AdminController.add_enrollment(file, db)
+
+@router.post("/upload-course-offering/")
+async def upload_course(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    return await AdminController.offer_course(file, db)

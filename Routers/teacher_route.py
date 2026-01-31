@@ -1,0 +1,11 @@
+from Controllers.TeacherController import TeacherController
+from fastapi import APIRouter, File, Request, Depends, UploadFile, Form
+from sqlalchemy.orm import Session
+from db import get_db
+
+router = APIRouter()
+
+@router.get("/course-allocation/{course_id}/{teacher_id}")
+def course_allocation(course_id: int, teacher_id: int, db: Session = Depends(get_db)):
+    return TeacherController.get_course_allocation(course_id, teacher_id, db)
+

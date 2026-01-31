@@ -1,0 +1,26 @@
+from fastapi import APIRouter, File, Request, Depends, UploadFile
+from sqlalchemy.orm import Session
+from db import get_db
+from Controllers.UserController import UserController
+from Controllers.StudentController import StudentController
+from Schemas.StudentAnswer import StudentAnswer
+
+router = APIRouter()
+
+@router.get('/getStudents')
+def all_students(db: Session = Depends(get_db)):
+    return StudentController.get_all_student(db)
+
+@router.get('/enrolledCourses/{id}')
+def get_enrolled_courses(id:int, db:Session = Depends(get_db)):
+    return StudentController.get_enrolled_courses(db, id)
+
+@router.get('/exam/{id}')
+def fetch_exams(id: int, db: Session = Depends(get_db)):
+    return StudentController.fetch_exams(db, id)   
+
+@router.post('/AddMcqAnswer/')
+def Add_McqAnswer(data: StudentAnswer, db: Session=Depends(get_db)):
+    return StudentController.Add_McqAnswer (data, db)
+
+
