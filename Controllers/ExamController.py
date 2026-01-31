@@ -1,0 +1,127 @@
+from typing import List
+from Models import MCQOption
+from Models import ExamDescQues
+from fastapi import UploadFile
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from Models.Exam import Exam
+from Schemas.ExamCreate import ExamCreate
+from Schemas.ExamMcqCreate import ExamMCQCreate, MCQOptionCreate
+
+from Models.ExamMCQ import ExamMCQ
+
+class ExamController:
+    @staticmethod
+    def create_exam(data: ExamCreate, db: Session):
+        new_exam = Exam(
+            A_ID=data.A_ID,
+            TITLE=data.TITLE,
+            TOTAL_QUESTIONS=data.TOTAL_QUESTIONS,
+            E_DATE=data.E_DATE,
+            START_TIME=data.START_TIME,
+            END_TIME=data.END_TIME,
+            E_TYPE=data.E_TYPE,
+            STATUS=data.STATUS
+        )
+        db.add(new_exam)
+        db.commit()
+        db.refresh(new_exam)
+
+        return {"success": f"{new_exam.ID}"}
+    
+    @staticmethod
+    def add_mcqs(mcq_list: List[ExamMCQCreate], db: Session):
+        added_mcqs = []
+        try:
+            for mcq_data in mcq_list:
+                # Add MCQ
+                new_mcq = ExamMCQ(
+                    E_ID=mcq_data.E_ID,
+                    DESCRIPTION=mcq_data.DESCRIPTION,
+                    MARKS=mcq_data.MARKS
+                )
+                db.add(new_mcq)
+                db.commit()
+                db.refresh(new_mcq)
+
+                for opt in mcq_data.options:
+                    new_option = MCQOption(
+                        M_ID=new_mcq.ID,
+                        OPTION_TEXT=opt.OPTION_TEXT,
+                        IS_CORRECT=opt.IS_CORRECT
+                    )
+                    db.add(new_option)
+                db.commit()
+
+                added_mcqs.append({
+                    "mcq_id": new_mcq.ID,
+                    "description": new_mcq.DESCRIPTION
+                })
+
+            return {"message": "MCQs added successfully", "added_mcqs": added_mcqs}
+
+        except Exception as e:
+            db.rollback()
+            return {"error": f"Database error: {str(e)}"}, 500
+        
+    @staticmethod
+    def update_exam_details(exam_id: int, data: dict, db: Session):
+        exam = db.query(Exam).filter(Exam.ID == exam_id).first()
+        if not exam:
+            return {"error": "Exam record not found"}
+        if 'a_id' in data:
+            exam.A_ID = data['a_id']
+        if 'title' in data:
+            exam.TITLE = data['title']
+        if 'total_questions' in data:
+            exam.TOTAL_QUESTIONS = data['total_questions']
+        if 'e_date' in data:
+            exam.E_DATE = data['e_date']
+        if 'start_time' in data:
+            exam.START_TIME = data['start_time']
+        if 'end_time' in data:
+            exam.END_TIME = data['end_time']
+        if 'e_type' in data:
+            exam.E_TYPE = data['e_type']
+        if 'status' in data:
+            exam.STATUS = data['status']
+        try:
+            db.commit()
+            return {"message": "Exam updated successfully", "exam_id": exam_id}
+        except Exception as e:
+            return {"error": f"Database error: {str(e)}"}, 500
+
+    @staticmethod
+    def remove_exam(exam_id: int, db: Session):
+        examMcq = db.query(ExamMCQ).filter(ExamMCQ.E_ID == exam_id).all()
+        if examMcq: 
+            try:
+                for row in examMcq:
+                    if row.option_rship:
+                        for opt in row.option_rship:
+                            db.delete(opt)
+                    db.delete(row)
+                db.commit()
+            except Exception as e:
+                return {"error": "Exam record not found in database"}, 404
+            
+        examDesc = db.query(ExamDescQues).filter(ExamDescQues.E_ID == exam_id).all()
+        if examDesc:
+            try:
+                for row in examDesc:
+                    db.delete(row)
+                db.commit()
+            except Exception as e:
+                return {"error": "Exam record not found in database"}, 404
+            
+        exam = db.query(Exam).filter(Exam.ID == exam_id).first()
+
+        if not exam:
+            return {"error": "Exam record not found in database"}, 404
+        try:
+            db.delete(exam)
+            db.commit()
+            return {"message": f"Exam ID {exam_id} deleted successfully"}
+        
+        except Exception as e:
+            return {"error": f"Cannot delete: {str(e)}"}, 500
