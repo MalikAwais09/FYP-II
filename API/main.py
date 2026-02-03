@@ -51,3 +51,5 @@ def startup_event():
         db.close()
     except Exception as e:
         print(f"\nERROR: Connection failed.\nDetails: {e}\n")
+
+#  This is testing to check the connection.
