@@ -1,17 +1,19 @@
-
 from sqlalchemy.orm import Session
 # import Models
 from Models import (CourseAllocation,CourseOffering, Course, Teacher, Users)
 
 
 class TeacherController:
-   def course_allocation_id(course_id: int, teacher_id: int, db: Session):
+    
+    @staticmethod
+    def course_allocation_id(course_id: int, teacher_id: int, db: Session):
         try:
-            allocation = db.query(CourseAllocation.ID).\
-                join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID).\
+            allocation = db.query(
+                CourseAllocation.ID
+            ).join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID).\
                 join(Course, Course.ID == CourseOffering.CourseID).\
                 join(Teacher, Teacher.ID == CourseAllocation.TeacherID).\
-                join(Users, Users.ID == Teacher.UserID).\
+                join(Users, Users.ID == Teacher.userID).\
                 filter(Course.ID == course_id, Teacher.ID == teacher_id).first()
 
             if allocation:

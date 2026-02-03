@@ -7,5 +7,6 @@ router = APIRouter()
 
 @router.get("/course-allocation/{course_id}/{teacher_id}")
 def course_allocation(course_id: int, teacher_id: int, db: Session = Depends(get_db)):
-    return TeacherController.get_course_allocation(course_id, teacher_id, db)
+    
+    return TeacherController.course_allocation_id(course_id, teacher_id, db)
 

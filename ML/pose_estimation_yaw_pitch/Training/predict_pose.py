@@ -26,7 +26,7 @@ class PoseEstimation:
             (p1[1] - p2[1]) ** 2 +
             (p1[2] - p2[2]) ** 2
         )
-
+    
     def predict_pose(self, image):
         # image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
         
