@@ -1,2 +1,0 @@
-def Allahapkohidayatde():
-    return "Ameen"
