@@ -371,3 +371,169 @@ GO
 
 GO
 
+-- ======================================
+-- Departments
+-- ======================================
+INSERT INTO [dbo].[Department] ([NAME])
+VALUES 
+('AI'),
+('SE'),
+('CS');
+GO
+
+-- ======================================
+-- Courses
+-- ======================================
+INSERT INTO [dbo].[Course] ([COURSE_CODE], [CATEGORY], [CREDIT_HRS], [Title])
+VALUES 
+('AI101', 'Core', 3, 'Introduction to AI'),
+('AI201', 'Core', 3, 'Machine Learning'),
+('SE101', 'Core', 3, 'Software Engineering'),
+('SE201', 'Core', 3, 'Agile Methodologies'),
+('CS101', 'Core', 3, 'Data Structures'),
+('CS201', 'Core', 3, 'Algorithms');
+GO
+
+-- ======================================
+-- Rooms
+-- ======================================
+INSERT INTO [dbo].[Room] ([RoomName], [TotalRows], [SeatsPerRow])
+VALUES 
+('LT1', 5, 8),
+('LT2', 6, 10),
+('LT3', 4, 6);
+GO
+
+-- ======================================
+-- Sections
+-- ======================================
+INSERT INTO [dbo].[Section] ([NAME], [department])
+VALUES
+('A1', 1),
+('A2', 1),
+('B1', 2),
+('B2', 2),
+('C1', 3),
+('C2', 3);
+GO
+
+-- ======================================
+-- Users
+-- ======================================
+INSERT INTO [dbo].[Users] ([Name], [Gender], [DateOfBirth], [Email], [PhoneNumber], [Role], [profile_image])
+VALUES
+('Ali Khan', 'Male', '2000-05-10', 'ali.khan@example.com', '03001234567', 'Student', 'profile1.jpg'),
+('Sara Ahmed', 'Female', '1999-08-22', 'sara.ahmed@example.com', '03007654321', 'Student', 'profile2.jpg'),
+('Bilal Qureshi', 'Male', '1995-03-15', 'bilal.qureshi@example.com', '03009876543', 'Teacher', 'profile3.jpg'),
+('Hina Riaz', 'Female', '1994-12-01', 'hina.riaz@example.com', '03002345678', 'Teacher', 'profile4.jpg');
+GO
+
+-- ======================================
+-- Teacher
+-- ======================================
+INSERT INTO [dbo].[Teacher] ([userID], [DESIGNATION], [EXPERIENCE_IN_YEARS], [QUALIFICATION])
+VALUES
+(3, 'Assistant Professor', 5, 'PhD'),
+(4, 'Lecturer', 3, 'MSc');
+GO
+
+-- ======================================
+-- CourseOffering
+-- ======================================
+INSERT INTO [dbo].[CourseOffering] ([CourseID], [Semester], [DEPARTMENT], [Year], [SESSION])
+VALUES
+(1, 1, 1, 2026, 'Spring'),
+(2, 2, 1, 2026, 'Spring'),
+(3, 1, 2, 2026, 'Spring'),
+(4, 2, 2, 2026, 'Spring'),
+(5, 1, 3, 2026, 'Spring'),
+(6, 2, 3, 2026, 'Spring');
+GO
+
+-- ======================================
+-- CourseAllocation
+-- ======================================
+INSERT INTO [dbo].[CourseAllocation] ([TeacherID], [OfferingID], [SECTION])
+VALUES
+(1, 1, 1),
+(1, 2, 2),
+(2, 3, 3),
+(2, 4, 4),
+(1, 5, 5),
+(1, 6, 6);
+GO
+
+-- ======================================
+-- Students
+-- ======================================
+INSERT INTO [dbo].[Student] ([userID], [CGPA], [Section], [Intake], [YEAR])
+VALUES
+(1, 3.5, 1, '2022', 3),
+(2, 3.7, 2, '2022', 3);
+GO
+
+-- ======================================
+-- CourseEnrollment
+-- ======================================
+INSERT INTO [dbo].[CourseEnrollment] ([StudentID], [OfferingID])
+VALUES
+(1, 1),
+(1, 3),
+(2, 2),
+(2, 4);
+GO
+
+-- ======================================
+-- Exam
+-- ======================================
+INSERT INTO [dbo].[Exam] ([A_ID], [TITLE], [TOTAL_QUESTIONS], [E_DATE], [START_TIME], [END_TIME], [E_TYPE], [STATUS])
+VALUES
+(1, 'Midterm AI', 10, '2026-03-15', '10:00', '12:00', 'MCQ', 'Scheduled'),
+(2, 'Midterm SE', 8, '2026-03-16', '14:00', '16:00', 'MCQ', 'Scheduled');
+GO
+
+-- ======================================
+-- ExamRoom
+-- ======================================
+INSERT INTO [dbo].[ExamRoom] ([ExamID], [RoomID], [E_Date], [E_Time])
+VALUES
+(1, 1, '2026-03-15', '10:00'),
+(2, 2, '2026-03-16', '14:00');
+GO
+
+-- ======================================
+-- ProctoringEvent
+-- ======================================
+INSERT INTO [dbo].[ProctoringEvent] ([EX_ID], [S_ID], [EventType])
+VALUES
+(1, 1, 'Voice'),
+(1, 2, 'Camera'),
+(2, 1, 'Screen');
+GO
+
+-- ======================================
+-- VoiceMonitoring
+-- ======================================
+INSERT INTO [dbo].[VoiceMonitoring] ([EventID], [Transcript])
+VALUES
+(1, 'Student speaking detected'),
+(1, 'Background noise detected');
+GO
+
+-- ======================================
+-- ScreenMonitoring
+-- ======================================
+INSERT INTO [dbo].[ScreenMonitoring] ([EventID], [ActionType], [EvidanceImage])
+VALUES
+(3, 'Switched window', 0x0),
+(3, 'Opened prohibited app', 0x0);
+GO
+
+-- ======================================
+-- CameraMonitoring
+-- ======================================
+INSERT INTO [dbo].[CameraMonitoring] ([EventID], [IsStudentPresent], [description], [ImageEvidence])
+VALUES
+(2, 1, 'Student present', 'image1.jpg'),
+(2, 0, 'Student left camera view', 'image2.jpg');
+GO
