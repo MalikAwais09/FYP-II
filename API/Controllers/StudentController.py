@@ -77,9 +77,8 @@ class StudentController:
         result = db.query(
             Exam.ID.label("examID"),
             Exam.TITLE.label('examTitle'),
-            Exam.START_TIME.label('startTime'),
-            Exam.END_TIME.label('endTime'),
             Exam.E_DATE.label('examDate'),
+            Exam.timeInMinutes.label("timeInMinutes"),
             Exam.STATUS.label('status')
         ).join(
             CourseAllocation, CourseAllocation.ID == Exam.A_ID
@@ -96,9 +95,8 @@ class StudentController:
                     {
                         'examID': row.examID,
                         'examTitle': row.examTitle,
-                        'startTime': row.startTime,
-                        'endTime': row.endTime,
                         'examDate': row.examDate,
+                        'timeInMinutes': row.timeInMinutes,
                         'status': row.status
                     }
                     for row in result
