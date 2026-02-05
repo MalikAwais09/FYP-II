@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from Models import (Users, Student)
+from Models import (Users, Student, Teacher)
 from fastapi import UploadFile, File 
 class UserController:
 
@@ -21,11 +21,26 @@ class UserController:
             if user is None:
                 return {"error": "No User Found"}
             else:
-                id, role = user
+                userId, role = user
+                
+                id = 0
+                if role.lower() == "teacher":
+                    getID = db.query(Teacher.ID).filter(
+                        Teacher.userID == userId
+                    ).first()
+                    id = getID[0]
+                elif role.lower() == "student":
+                    getID = db.query(Student.StudentID).filter(
+                        Student.userID == userId
+                    ).first()
+                    id = getID[0]
+                
+                print(f"id = {id}")
                 return {
                     "success": True,
-                    "userID": id,
-                    "role": role
+                    "id": id,
+                    "userID": userId,
+                    "role": role,
                     }
         except Exception as e:
             print("database error")
