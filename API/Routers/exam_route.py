@@ -27,6 +27,10 @@ def add_mcq_endpoint(mcq: List[ExamMCQCreate], db: Session = Depends(get_db)):
 def delete_exam(id: int, db: Session = Depends(get_db)):
     return ExamController.remove_exam(id, db)
 
-@router.get('/fetchMcqs/{exam_id}')
-def fetch_mcqs(exam_id:int, db:Session=Depends(get_db)):
-    return StudentController.fetch_mcqs(db, exam_id) 
+# @router.get('/fetchMcqs/{exam_id}')
+# def fetch_mcqs(exam_id:int, db:Session=Depends(get_db)):
+#     return StudentController.fetch_mcqs(db, exam_id) 
+
+@router.get('/fetchMcqs/{id}')
+def fetch_mcqs(id: int, db:Session=Depends(get_db)):
+    return ExamController.fetch_mcqs(db, id)

@@ -79,7 +79,8 @@ class StudentController:
             Exam.TITLE.label('examTitle'),
             Exam.E_DATE.label('examDate'),
             Exam.timeInMinutes.label("timeInMinutes"),
-            Exam.STATUS.label('status')
+            Exam.STATUS.label('status'),
+            Exam.E_TYPE.label('examType')
         ).join(
             CourseAllocation, CourseAllocation.ID == Exam.A_ID
         ).join(
@@ -97,7 +98,8 @@ class StudentController:
                         'examTitle': row.examTitle,
                         'examDate': row.examDate,
                         'timeInMinutes': row.timeInMinutes,
-                        'status': row.status
+                        'status': row.status,
+                        'examType': row.examType
                     }
                     for row in result
                 ]
