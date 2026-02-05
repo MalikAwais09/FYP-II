@@ -73,7 +73,7 @@ class StudentController:
 
     @staticmethod
     def fetch_exams(db: Session, course_id: int):
-        """get all exams of a particular course"""
+        """get pending exams of a particular course"""
         result = db.query(
             Exam.ID.label("examID"),
             Exam.TITLE.label('examTitle'),
@@ -88,7 +88,8 @@ class StudentController:
         ).join(
             Course, Course.ID == CourseOffering.CourseID
         ).filter(
-            Course.ID == course_id
+            Course.ID == course_id, 
+            Exam.STATUS == "pending"
         )
         if result:
             exams = [
