@@ -6,7 +6,7 @@ import urllib
 username = "sa"
 password = "Macbookpro2019"
 server = "localhost"           # SQL Server instance
-database = "FYP_PROJECT_3"
+database = "ExamProctoring"
 driver = "ODBC Driver 17 for SQL Server"
 
 # Build connection string with proper URL encoding
