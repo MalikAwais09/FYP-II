@@ -14,14 +14,14 @@ class UserController:
         # import time 
         try:
             # time.sleep(5)
-            user = db.query(Users.ID, Users.Role).filter(
+            user = db.query(Users.ID, Users.Role, Users.Name).filter(
                 Users.identity_no == id
             ).first()
             
             if user is None:
                 return {"error": "No User Found"}
             else:
-                userId, role = user
+                userId, role, name = user
                 
                 id = 0
                 if role.lower() == "teacher":
@@ -34,13 +34,13 @@ class UserController:
                         Student.userID == userId
                     ).first()
                     id = getID[0]
-                
-                print(f"id = {id}")
+            
                 return {
                     "success": True,
                     "id": id,
                     "userID": userId,
                     "role": role,
+                    "name": name
                     }
         except Exception as e:
             print("database error")
