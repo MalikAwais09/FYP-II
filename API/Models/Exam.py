@@ -1,5 +1,5 @@
 from db import Base
-from sqlalchemy import Column, Integer, String, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 class Exam(Base):
     __tablename__ = 'exam' #
@@ -8,9 +8,8 @@ class Exam(Base):
     A_ID = Column(Integer, ForeignKey('courseallocation.ID'))
     TITLE = Column(String(50), nullable=False)
     TOTAL_QUESTIONS = Column(Integer)
-    E_DATE = Column(Date)
-    START_TIME = Column(String(10))
-    END_TIME = Column(String(10))
+    E_DATE = Column(DateTime)        # changed from Date to DateTime
+    timeInMinutes = Column(Integer)     # new column for exam duration in hours
     E_TYPE = Column(String(6))
     STATUS = Column(String(7))
 
