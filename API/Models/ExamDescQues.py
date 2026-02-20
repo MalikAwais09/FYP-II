@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class ExamDescQues(Base):
     __tablename__ = 'examdescques' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     E_ID = Column(Integer, ForeignKey('exam.ID'))

@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-
 # Get the path to the 'API' folder (one level up from main.py)
 root_path = Path(__file__).resolve().parent.parent
 sys.path.append(str(root_path))
@@ -21,8 +20,6 @@ import Models
 # ---------------- FastAPI instance ----------------
 app = FastAPI(title="FYP Project API")
 
-
-
 # allows the request from frontEnd or Postman
 origins = ["*"] 
 
@@ -34,15 +31,13 @@ app.add_middleware(
     allow_headers=["*"],         
 )
 
-# app.include_router(user_route.router)
-# app.include_router(student_route.router)
-# app.include_router(admin_route.router)
-# app.include_router(exam_route.router)
-# app.include_router(proctoring_route.router)
-# app.include_router(teacher_route.router)
-#app.include_router(voice_route.router)
-
-
+app.include_router(user_route.router)
+app.include_router(student_route.router)
+app.include_router(admin_route.router)
+app.include_router(exam_route.router)
+app.include_router(proctoring_route.router)
+app.include_router(teacher_route.router)
+# app.include_router(voice_route.router)
 
 @app.on_event("startup")
 def startup_event():

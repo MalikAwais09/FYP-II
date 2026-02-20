@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 class Room(Base):
     __tablename__ = "room"
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
     RoomName = Column(String(7), nullable=False)

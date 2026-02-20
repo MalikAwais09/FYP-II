@@ -5,6 +5,7 @@ from datetime import datetime
 
 class ProctoringEvent(Base):
     __tablename__ = 'proctoringevent' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     EX_ID = Column(Integer, ForeignKey('exam.ID'))

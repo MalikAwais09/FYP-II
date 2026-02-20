@@ -5,6 +5,7 @@ from datetime import datetime
 
 class CourseAllocation(Base):
     __tablename__ = 'courseallocation'
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     TeacherID = Column(Integer, ForeignKey('teacher.ID'), nullable=False)

@@ -6,6 +6,7 @@ from datetime import datetime
 
 class StudentBreak(Base):
     __tablename__ = "studentbreak"
+    __table_args__ = {'extend_existing': True}
 
     breakid = Column(Integer, primary_key=True, autoincrement=True)
     studentid = Column(Integer, ForeignKey('student.StudentID'), nullable=False)

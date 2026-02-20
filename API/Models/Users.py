@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class Users(Base):
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     Name = Column(String(100), nullable=False)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 
 class TeacherRoomAssignment(Base):
     __tablename__ = 'teacherroomassignment'
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
     TeacherID = Column(Integer, ForeignKey('teacher.ID'), nullable=False)

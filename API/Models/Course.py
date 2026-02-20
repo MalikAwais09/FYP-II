@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class Course(Base):
     __tablename__ = 'course'
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     COURSE_CODE = Column(String(9), nullable=False)

@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class ScreenMonitoring(Base):
     __tablename__ = 'screenmonitoring' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     EventID = Column(Integer, ForeignKey('proctoringevent.ID'))

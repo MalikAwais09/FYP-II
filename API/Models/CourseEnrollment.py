@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 class CourseEnrollment(Base):
     __tablename__ = 'courseenrollment'
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     StudentID = Column(Integer, ForeignKey('student.StudentID'), nullable=False)

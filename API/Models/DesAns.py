@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class DesAns(Base):
     __tablename__ = 'desans' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     Q_ID = Column(Integer, ForeignKey('examdescques.ID'))

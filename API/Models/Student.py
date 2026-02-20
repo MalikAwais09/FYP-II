@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 class Student(Base):
     __tablename__ = 'student'
+    __table_args__ = {'extend_existing': True}
 
     StudentID = Column(Integer, primary_key=True)
     userID = Column(Integer, ForeignKey('users.ID'))

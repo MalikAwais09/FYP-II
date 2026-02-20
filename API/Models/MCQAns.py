@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class MCQAns(Base):
     __tablename__ = 'mcqans' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True, index=True)
     M_ID = Column(Integer, ForeignKey('exammcq.ID'))

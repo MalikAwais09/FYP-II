@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 class MCQOption(Base):
     __tablename__ = 'mcqoption' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     M_ID = Column(Integer, ForeignKey('exammcq.ID'))

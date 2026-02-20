@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 class Department(Base):
     __tablename__ = "department"
+    __table_args__ = {'extend_existing': True}
     ID = Column(Integer, primary_key = True)
     name = Column(String(2))
 

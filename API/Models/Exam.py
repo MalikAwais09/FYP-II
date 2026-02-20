@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 class Exam(Base):
     __tablename__ = 'exam' #
+    __table_args__ = {'extend_existing': True}
 
     ID = Column(Integer, primary_key=True)
     A_ID = Column(Integer, ForeignKey('courseallocation.ID'))

@@ -1,6 +1,6 @@
-from Controllers.TeacherController import TeacherController
 from fastapi import APIRouter, File, Request, Depends, UploadFile, Form
 from sqlalchemy.orm import Session
+from Controllers.TeacherController import TeacherController
 from db import get_db
 
 router = APIRouter()
