@@ -136,11 +136,12 @@ class TeacherController:
                 Exam.STATUS,
                 Exam.E_DATE,
                 Exam.timeInMinutes
-            )
+            ).all()
             
             if not result:
                 return {'error': 'no exams  found'}
             else:
+                print("teacher exam found")
                 return [
                     {
                         "examID": exam.examID,
@@ -205,6 +206,7 @@ class TeacherController:
                     Student.StudentID.label("studentID"),
                     Users.Name.label("studentName"),
                     Users.identity_no.label("identityNo"),
+                    ExamAttempt.status.label("status"),
                     func.concat(Department.name, "-", Student.semester ,Section.name).label("section")
                 )
                 .select_from(ExamAttempt)
@@ -225,7 +227,8 @@ class TeacherController:
                         "studentID": std.studentID,
                         "studentName": std.studentName,
                         "identityNo": std.identityNo,
-                        "section": std.section
+                        "section": std.section,
+                        "status": std.status
                     }
                     for std in result
                 ]

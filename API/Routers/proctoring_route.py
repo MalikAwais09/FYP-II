@@ -47,5 +47,8 @@ async def voiceProctoringDiarize(
 async def ObjectDetection(file: UploadFile = File(...), attempt_id: int = Form(...), time: str = Form(...), db: Session = Depends(get_db)):
     return await ProctoringController.detect_objects(file, attempt_id, time, db)
 
+@router.get('/fetchCheatingSummary/{s_id}/{e_id}')
+def fetch_cheating_summary(s_id: int, e_id: int, db: Session = Depends(get_db)):
+    return ProctoringController.compute_cheating(s_id, e_id, db)
 
 # uvicorn main:app --reload --host 0.0.0.0 --port 8000 
