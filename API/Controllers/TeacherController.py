@@ -568,8 +568,8 @@ class TeacherController:
                 Users.identity_no.label("identityNo"),
                 func.concat(Department.name, "-", Student.semester, Section.name).label("section"),
                 case(
-                    (attempt_exists, 'present'),            # ✅ if record exists → present
-                    else_='absent'                          # ✅ no record → absent
+                    (ExamAttempt.studentID != None, ExamAttempt.status),  
+                    else_='absent'                                        
                 ).label("status")
             ).select_from(CourseAllocation
             ).join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID
@@ -579,6 +579,11 @@ class TeacherController:
             ).join(CourseEnrollment, CourseEnrollment.StudentID == Student.StudentID
             ).join(Users, Users.ID == Student.userID
             ).join(Department, Department.ID == Section.department
+            ).outerjoin(
+                ExamAttempt, and_(
+                    ExamAttempt.studentID == Student.StudentID,
+                    ExamAttempt.examID == examId
+                )
             ).filter(
                 Teacher.ID == teacherId,
                 CourseOffering.CourseID == courseID,
