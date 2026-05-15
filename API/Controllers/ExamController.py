@@ -315,3 +315,18 @@ class ExamController:
                 return {'success': True}
         except Exception as e:
             return {'error': f'Database error {e}'}
+        
+        
+    @staticmethod
+    def submit_exam(attempt_id: int, db: Session):
+        """Method to set the exam attempt status to submitted after student submits his exam."""
+        try:
+            attempt = db.query(ExamAttempt).filter(ExamAttempt.ID == attempt_id).first()
+            if not attempt:
+                return {'error': 'no exam attempt found for this attempt id. Contact your teacher to again attempt the exam. '}
+            else:
+                attempt.status = 'submitted'
+                db.commit()
+                return {'success': True}
+        except Exception as e:
+            return {'error': f'Database error {e}'}
