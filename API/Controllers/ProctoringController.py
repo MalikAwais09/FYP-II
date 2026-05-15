@@ -25,7 +25,7 @@ import mediapipe as mp
 from ultralytics import YOLO #type: ignore
 from concurrent.futures import ProcessPoolExecutor
 
-process_executor = ProcessPoolExecutor(max_workers=6)
+thread_executor = ThreadPoolExecutor(max_workers=4)
 
 root_dir = Path(__file__).resolve().parent.parent  # Points to API Folder
 
@@ -1232,7 +1232,7 @@ class ProctoringController:
 
             # Face count pehle check karo
             face_count = await loop.run_in_executor(
-                process_executor,
+                thread_executor,
                 ProctoringController.count_face,
                 image_array
             )
@@ -1267,9 +1267,9 @@ class ProctoringController:
                     server_path, (identity_verified, pose, eye_gaze) = await asyncio.gather(
                         asyncio.to_thread(ProctoringController.saveImageOnServer, pictures_base_folder, image_bytes, attempt_id, time),
                         asyncio.gather(
-                            loop.run_in_executor(process_executor, UserController.verifyPerson, identity_no, image_array),
-                            loop.run_in_executor(process_executor, PoseEstimationClass.process_face_pose, image_array),
-                            loop.run_in_executor(process_executor, ProctoringController.EyeGazeMovement, image_array)
+                            loop.run_in_executor(thread_executor, UserController.verifyPerson, identity_no, image_array),
+                            loop.run_in_executor(thread_executor, PoseEstimationClass.process_face_pose, image_array),
+                            loop.run_in_executor(thread_executor, ProctoringController.EyeGazeMovement, image_array)
                         )
                     )
 
@@ -1314,7 +1314,6 @@ class ProctoringController:
             return {'fail': f'ERROR: {e}'}
 
 
-    
 
     @staticmethod
     def compute_cheating(s_id: int, e_id: int, db: Session):
