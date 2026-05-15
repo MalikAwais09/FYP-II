@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from Schemas.StudentLog import StudentLog
 from pydub import AudioSegment
 import os
+from sqlalchemy import case, exists, and_
 
 from pathlib import Path
 root_dir = Path(__file__).resolve().parent.parent # Points to API Folder 
@@ -534,11 +535,42 @@ class TeacherController:
             if courseID is None:
                 return {'error': 'Exam not found'}
             
+            attempt_exists = exists().where(
+                and_(
+                    ExamAttempt.studentID == Student.StudentID,
+                    ExamAttempt.examID == examId          # pass your exam_id parameter here
+                )
+            )
+            
+            # result = db.query(
+            #     distinct(Student.StudentID).label("studentID"),
+            #     Users.Name.label("studentName"),
+            #     Users.identity_no.label("identityNo"),
+            #     func.concat(Department.name, "-", Student.semester ,Section.name).label("section")
+            # ).select_from(CourseAllocation
+            # ).join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID
+            # ).join(Teacher, Teacher.ID == CourseAllocation.TeacherID
+            # ).join(Section, Section.ID == CourseAllocation.SECTION
+            # ).join(Student, Student.Section == CourseAllocation.SECTION
+            # ).join(CourseEnrollment, CourseEnrollment.StudentID == Student.StudentID
+            # ).join(Users, Users.ID == Student.userID
+            # ).join(Department, Department.ID == Section.department
+            # ).filter(
+            #     Teacher.ID == teacherId,
+            #     CourseOffering.CourseID == courseID,
+            #     CourseAllocation.status == 'allocated',
+            #     CourseEnrollment.Status == 'enrolled',
+            # ).all()
+            
             result = db.query(
                 distinct(Student.StudentID).label("studentID"),
                 Users.Name.label("studentName"),
                 Users.identity_no.label("identityNo"),
-                func.concat(Department.name, "-", Student.semester ,Section.name).label("section")
+                func.concat(Department.name, "-", Student.semester, Section.name).label("section"),
+                case(
+                    (attempt_exists, 'present'),            # ✅ if record exists → present
+                    else_='absent'                          # ✅ no record → absent
+                ).label("status")
             ).select_from(CourseAllocation
             ).join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID
             ).join(Teacher, Teacher.ID == CourseAllocation.TeacherID
@@ -553,7 +585,6 @@ class TeacherController:
                 CourseAllocation.status == 'allocated',
                 CourseEnrollment.Status == 'enrolled',
             ).all()
-            
         
             if not result:
                 return {'error': 'no student found'}
@@ -563,7 +594,8 @@ class TeacherController:
                         "studentID": std.studentID,
                         "studentName": std.studentName,
                         "identityNo": std.identityNo,
-                        "section": std.section
+                        "section": std.section,
+                        "status": std.status
                     }
                     for std in result
                 ]
