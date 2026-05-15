@@ -10,7 +10,7 @@ from pathlib import Path
 root_dir = Path(__file__).resolve().parent.parent # Points to API Folder 
 
 # import Models
-from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk)
+from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk,CourseAllocation,  CourseEnrollment)
 
 
 
@@ -203,6 +203,7 @@ class TeacherController:
         try:
             result = (
                 db.query(
+                    distinct(ExamAttempt.studentID),
                     Student.StudentID.label("studentID"),
                     Users.Name.label("studentName"),
                     Users.identity_no.label("identityNo"),
@@ -215,7 +216,8 @@ class TeacherController:
                 .join(Users, Users.ID == Student.userID)
                 .join(Section, Section.ID == Student.Section)
                 .join(Department, Department.ID == Section.department)
-                .filter(ExamAttempt.examID == exam_id)
+                .filter(ExamAttempt.examID == exam_id, 
+                        CourseAllocation.SECTION == Student.Section)
                 .all()
             )
             
@@ -521,3 +523,51 @@ class TeacherController:
         except Exception as e:
             db.rollback()
             return {'error': f'database error {e}'}
+        
+        
+    @staticmethod
+    def getAllStudentsInCourseAgainstTeacher(examId: int, teacherId: int, db: Session):
+        ''''This Function returns all the students who are enrolled in the same course, which the teacher is teaching same section as of studnets.'''
+        try:
+            courseID = db.query(Exam.courseId).filter(Exam.ID == examId).scalar()
+            
+            if courseID is None:
+                return {'error': 'Exam not found'}
+            
+            result = db.query(
+                distinct(Student.StudentID).label("studentID"),
+                Users.Name.label("studentName"),
+                Users.identity_no.label("identityNo"),
+                func.concat(Department.name, "-", Student.semester ,Section.name).label("section")
+            ).select_from(CourseAllocation
+            ).join(CourseOffering, CourseOffering.ID == CourseAllocation.OfferingID
+            ).join(Teacher, Teacher.ID == CourseAllocation.TeacherID
+            ).join(Section, Section.ID == CourseAllocation.SECTION
+            ).join(Student, Student.Section == CourseAllocation.SECTION
+            ).join(CourseEnrollment, CourseEnrollment.StudentID == Student.StudentID
+            ).join(Users, Users.ID == Student.userID
+            ).join(Department, Department.ID == Section.department
+            ).filter(
+                Teacher.ID == teacherId,
+                CourseOffering.CourseID == courseID,
+                CourseAllocation.status == 'allocated',
+                CourseEnrollment.Status == 'enrolled',
+            ).all()
+            
+        
+            if not result:
+                return {'error': 'no student found'}
+            else:
+                students = [
+                    {
+                        "studentID": std.studentID,
+                        "studentName": std.studentName,
+                        "identityNo": std.identityNo,
+                        "section": std.section
+                    }
+                    for std in result
+                ]
+                return {"success": students}
+        except Exception as e:
+            db.rollback()
+            return {"error": f"Database error: {str(e)}"}, 500

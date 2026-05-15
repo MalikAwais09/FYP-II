@@ -44,3 +44,9 @@ def fetchStudentRecording(std_id: int, exam_id: int, db: Session = Depends(get_d
 @router.get('/markVoiceAsUnsuspicious/{logId}/{examtype}')
 def markVoiceAsUnsuspicious(logId: int, examtype: str, db: Session = Depends(get_db)):
     return TeacherController.markVoiceAsUnsuspicious(logId, examtype, db)
+
+'''This Function returns all the students who are enrolled in a course for the teacher who is teaching that course in same section as of studnets.'''
+@router.get('/getAllStudentsInCourseAgainstTeacher/{examId}/{teacherId}')
+def getAllStudentsInCourseAgainstTeacher(examId: int, teacherId: int, db: Session = Depends(get_db)):
+    return TeacherController.getAllStudentsInCourseAgainstTeacher(examId, teacherId, db)
+
