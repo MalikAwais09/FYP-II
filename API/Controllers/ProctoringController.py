@@ -23,7 +23,7 @@ from datetime import datetime
 import asyncio
 import mediapipe as mp
 from ultralytics import YOLO #type: ignore
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 thread_executor = ThreadPoolExecutor(max_workers=4)
 
