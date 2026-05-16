@@ -24,3 +24,12 @@ async def StudentEnrollment(file: UploadFile = File(...), db: Session = Depends(
     return await AdminController.StudentEnrollment(file, db)
     
   
+
+router = APIRouter()
+
+@router.post("/uploadExam")
+async def upload_exam(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    return await AdminController.upload_exam_from_excel(file, db)

@@ -7,6 +7,7 @@ from pydub import AudioSegment
 import os
 from sqlalchemy import case, exists, and_
 
+from sqlalchemy.dialects.mssql import TIME 
 from pathlib import Path
 root_dir = Path(__file__).resolve().parent.parent # Points to API Folder 
 
@@ -15,8 +16,8 @@ from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users
 
 
 
-image_base_url = 'http://192.168.100.110:8000/images/'
-audio_base_url = 'http://192.168.41.188:8000/audios/'
+image_base_url = 'http://10.231.85.204:8000/images/'
+audio_base_url = 'http://10.231.85.204:8000/audios/'
 
 
 
@@ -258,9 +259,11 @@ class TeacherController:
         # FROM studentExamlog sl 
         # JOIN examAttempt ea on ea.id = sl.attempt_id
         # JOIN Student s on s.StudentID = ea.studentID
-
+        start_time = datetime.strptime(data.startTime, "%H:%M:%S").time()
+        end_time   = datetime.strptime(data.endTime,   "%H:%M:%S").time()
+        
         # WHERE ea.studentID = 1 and ea.examID = 2
-        print(f'student id: {data.std_id}, exam id: {data.exam_id}')
+        print(f'student id: {data.std_id}, exam id: {data.exam_id}, statrt time: {data.startTime}, end time: {data.endTime}')
         try:
             result = db.query( 
                 func.count().label('total'),
@@ -281,10 +284,12 @@ class TeacherController:
             ).filter(
                 ExamAttempt.studentID == data.std_id,
                 ExamAttempt.examID == data.exam_id, 
-                cast(StudentExamLog.TIMESTAMP, Time).between(data.startTime, data.endTime)
+                cast(StudentExamLog.TIMESTAMP, TIME).between(start_time, end_time)
+                # cast(StudentExamLog.TIMESTAMP, Time).between(data.startTime, data.endTime)
             ).first()
             
             if result: 
+                print(f'record found total {result.total}')
                 record = {
                     'total': result.total,
                     'straight': result.straight,
@@ -298,6 +303,7 @@ class TeacherController:
                 }
                 return {'content': record}
             else:
+                print('record not found')
                 return {"error": "no record found"}
         except Exception as e:
             return {"error": f"Database error: {str(e)}"}, 500
@@ -419,19 +425,19 @@ class TeacherController:
             )
             
             if exam:
-                
+                print("Exam type found")
                 e_type, attemptId = exam
                 status = ""
                 
                 if e_type.lower() == "mcq":
-                    
+                    print(" exam  type is mcq")
                     all_records = db.query(StudentMCQExamAudioChunk).filter(
                         StudentMCQExamAudioChunk.attemptID == attemptId, 
                         StudentMCQExamAudioChunk.is_suspicious == True
                     ).all()
                     
                     if all_records:
-                        
+                        print("record found")
                         content = [
                         {
                             'logid': data.ID,
@@ -452,6 +458,7 @@ class TeacherController:
                 
                 # elif e_type.lower() == "desc":
                 else:
+                    print(" exam  type is desc attempt id is ", attemptId)
                     
                     all_records = db.query(StudentDESCExamAudioChunk).filter(
                         StudentDESCExamAudioChunk.attemptID == attemptId, 
@@ -476,6 +483,7 @@ class TeacherController:
                         
                         return {'success': content}        
                     else:
+                        print("no record found")
                         return {'error': 'No record found against this exam.'}
                 
             else:

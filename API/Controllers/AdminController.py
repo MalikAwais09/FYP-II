@@ -1,11 +1,13 @@
 
 from sqlalchemy.orm import Session
 from fastapi import UploadFile 
-from Models import (CourseAllocation, CourseEnrollment, CourseOffering, Course, Teacher, Users, Section, Student, Department)
+from Models import (CourseAllocation, CourseEnrollment, CourseOffering, Course, Teacher, Users, Section, Student, Department, ExamMCQ, MCQOption, ExamDescQues, Exam)
 from io import BytesIO
 import pandas as pd
 from datetime import datetime
 from sqlalchemy import func, extract
+import io
+
 
 class AdminController:
     @staticmethod
@@ -453,3 +455,133 @@ class AdminController:
     @staticmethod
     def updateStudentSemester(db: Session):
         return
+    
+    
+    
+    
+    
+
+    # ═══════════════════════════════════════════
+    # STEP 1: Excel file upload karo
+    # ═══════════════════════════════════════════
+    @staticmethod
+    async def upload_exam_from_excel(file: UploadFile, db: Session):
+
+        try:
+            # Excel file ko bytes mein read karo
+            contents = await file.read()
+            excel    = pd.ExcelFile(io.BytesIO(contents))
+
+            # ── exam_info sheet se basic info lo ──
+            info_df = excel.parse('exam_info')
+            info    = info_df.iloc[0]  # pehli row
+
+            course_id    = int(info['course_id'])
+            title        = str(info['title'])
+            exam_date    = pd.to_datetime(info['date'])
+            time_minutes = int(info['time_minutes'])
+            exam_type    = str(info['type']).strip().upper()  # "MCQ" ya "DESC"
+
+            # type check karo
+            if exam_type not in ['MCQ', 'DESC']:
+                return {'error': 'type column mein sirf MCQ ya DESC likhein'}
+
+            # ── Exam DB mein save karo ──
+            new_exam = Exam(
+                courseId        = course_id,
+                TITLE           = title,
+                E_DATE          = exam_date,
+                timeInMinutes   = time_minutes,
+                E_TYPE          = exam_type,
+                STATUS          = 'pending',
+                TOTAL_QUESTIONS = 0
+            )
+            db.add(new_exam)
+            db.flush()  # commit se pehle ID generate karo
+
+            exam_id = new_exam.ID
+
+            # ── questions sheet read karo ──
+            ques_df         = excel.parse('questions')
+            total_questions = len(ques_df)
+
+            # exam type ke hisaab se questions insert karo
+            if exam_type == 'MCQ':
+                AdminController._insert_mcq(ques_df, exam_id, db)
+
+            elif exam_type == 'DESC':
+                AdminController._insert_desc(ques_df, exam_id, db)
+
+            # total questions update karo
+            new_exam.TOTAL_QUESTIONS = total_questions
+            db.commit()
+
+            return {
+                'success'        : True,
+                'exam_id'        : exam_id,
+                'title'          : title,
+                'type'           : exam_type,
+                'total_questions': total_questions
+            }
+
+        except KeyError as e:
+            db.rollback()
+            return {'error': f'Excel mein yeh column nahi mila: {str(e)}'}
+
+        except Exception as e:
+            db.rollback()
+            return {'error': f'Kuch masla hua: {str(e)}'}
+
+
+    # ═══════════════════════════════════════════
+    # STEP 2A: MCQ questions insert karo
+    # ═══════════════════════════════════════════
+    @staticmethod
+    def _insert_mcq(df: pd.DataFrame, exam_id: int, db: Session):
+
+        # A, B, C, D ka mapping Excel columns se
+        option_map = {
+            'A': 'option_a',
+            'B': 'option_b',
+            'C': 'option_c',
+            'D': 'option_d',
+        }
+
+        for _, row in df.iterrows():
+
+            # question save karo
+            question = ExamMCQ(
+                E_ID        = exam_id,
+                DESCRIPTION = str(row['description']),
+                MARKS       = int(row['marks'])
+            )
+            db.add(question)
+            db.flush()  # question ka ID chahiye options insert karne ke liye
+
+            # correct answer kaun sa hai (A/B/C/D)
+            correct_letter = str(row['correct_option']).strip().upper()
+
+            # 4 options insert karo
+            for letter, col_name in option_map.items():
+                option = MCQOption(
+                    M_ID        = question.ID,
+                    OPTION_TEXT = str(row[col_name]),
+                    IS_CORRECT  = (letter == correct_letter)  # True ya False
+                )
+                db.add(option)
+
+
+    # ═══════════════════════════════════════════
+    # STEP 2B: DESC questions insert karo
+    # ═══════════════════════════════════════════
+    @staticmethod
+    def _insert_desc(df: pd.DataFrame, exam_id: int, db: Session):
+
+        for _, row in df.iterrows():
+
+            question = ExamDescQues(
+                E_ID        = exam_id,
+                DESCRIPTION = str(row['description']),
+                MARKS       = int(row['marks'])
+            )
+            db.add(question)

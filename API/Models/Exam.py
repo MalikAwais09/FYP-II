@@ -7,7 +7,7 @@ class Exam(Base):
     ID = Column(Integer, primary_key=True)
     courseId = Column(Integer, ForeignKey('course.ID'))
     TITLE = Column(String(50), nullable=False)
-    TOTAL_QUESTIONS = Column(Integer)
+    TOTAL_QUESTIONS:  Mapped[int] = mapped_column(Integer)
     E_DATE = Column(DateTime)        # changed from Date to DateTime
     timeInMinutes = Column(Integer)     # new column for exam duration in hours
     E_TYPE = Column(String(6))
