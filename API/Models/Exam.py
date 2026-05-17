@@ -9,7 +9,7 @@ class Exam(Base):
     TITLE = Column(String(50), nullable=False)
     TOTAL_QUESTIONS:  Mapped[int] = mapped_column(Integer)
     E_DATE = Column(DateTime)        # changed from Date to DateTime
-    timeInMinutes = Column(Integer)     # new column for exam duration in hours
+    timeInMinutes :Mapped[int] = mapped_column(Integer)    # new column for exam duration in hours
     E_TYPE = Column(String(6))
     # STATUS = Column(String(7))
     STATUS: Mapped[str] = mapped_column(String(7))

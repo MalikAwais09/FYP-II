@@ -16,3 +16,4 @@ Assets/**/*
 !Assets/.gitkeep
 newcourses/
 StoredEmbeddings/
+voiceChunks/

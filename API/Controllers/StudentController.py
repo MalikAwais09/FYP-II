@@ -7,6 +7,7 @@ from Models import (CourseAllocation, CourseEnrollment, CourseOffering, Student,
 
 from Schemas.StudentAnswer import StudentAnswer
 from Schemas.McqAnswer import McqAnswer
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 class StudentController:
@@ -88,7 +89,7 @@ class StudentController:
             Exam.E_TYPE.label('examType')
         ).filter(
             Exam.courseId == course_id,
-            Exam.STATUS == "pending"
+            or_(Exam.STATUS == "pending", Exam.STATUS == "active")
         )
         # .join(
         #     CourseAllocation, CourseAllocation.ID == Exam.A_ID

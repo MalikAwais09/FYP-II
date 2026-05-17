@@ -13,6 +13,10 @@ from Schemas.ExamMcqCreate import ExamMCQCreate, MCQOptionCreate
 from Schemas.AttemptedExam import AttemptedExam
 # from Models.ExamMCQ import ExamMCQ
 
+
+from datetime import datetime, timedelta
+from sqlalchemy import or_
+
 class ExamController:
     @staticmethod
     def fetch_mcqs(db: Session, exam_id: int):
@@ -330,3 +334,60 @@ class ExamController:
                 return {'success': True}
         except Exception as e:
             return {'error': f'Database error {e}'}
+        
+        
+    @staticmethod
+    def save_single_mcq_answer(s_id: int, e_id: int, mcq_id: int, option_id: int, db: Session):
+        """Method to save single mcq answer of the student against his exam attempt."""
+        try:
+            attempt = db.query(ExamAttempt).filter(
+                ExamAttempt.studentID == s_id,
+                ExamAttempt.examID == e_id
+            ).first()
+            
+            if not attempt:
+                return {'error': 'no exam attempt found for this student and exam id.'}
+            
+            new_ans = MCQAns(
+                M_ID = mcq_id,
+                O_ID = option_id,
+                attemptID = attempt.ID
+            )
+            
+            db.add(new_ans)
+            db.commit()
+            return {'success': 'answer saved successfully'}
+        
+        except Exception as e:
+            return {'error', f'db error {e}'}
+        
+        
+    @staticmethod
+    def update_exam_status(db: Session):
+        now = datetime.now()
+    
+        exams = db.query(Exam).filter(
+            Exam.STATUS.in_(["pending", "active"])
+        ).all()
+        
+        updated = []
+        
+        for exam in exams:
+            start_time = exam.E_DATE  # 2026-05-16 21:00:00
+            end_time = start_time + timedelta(minutes=exam.timeInMinutes)
+            
+            if now >= end_time:
+                exam.STATUS = "completed"
+                updated.append({"id": exam.ID, "status": "completed"})
+                
+            elif now >= start_time:
+                exam.STATUS = "active"
+                updated.append({"id": exam.ID, "status": "active"})
+        
+        db.commit()
+        
+        return {
+            "message": "Exam statuses updated",
+            "updated": updated,
+            "checked_at": now
+        }

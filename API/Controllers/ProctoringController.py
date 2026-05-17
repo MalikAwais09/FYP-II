@@ -34,7 +34,7 @@ yolo_model_path = str(root_dir.parent / "ML/ObjectDetection/yolov8n.pt")
 object_detection_model = YOLO(yolo_model_path)
 
 # import Models
-from Models import (ProctoringEvent, CameraMonitoring, ScreenMonitoring, StudentExamLog, ExamAttempt, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk, DetectedObjects, CheatingSummary, Exam)
+from Models import (ProctoringEvent, CameraMonitoring, ScreenMonitoring, StudentExamLog, ExamAttempt, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk, DetectedObjects, CheatingSummary, Exam, DesAns)
 
 # tarined models for prediction
 from ML.FaceCount.faceCount import FaceCounter
@@ -434,7 +434,18 @@ class ProctoringController:
                 score = verification.get("score", 0)
                 
                 transcript = transcribe_audio(full_path)
+                
                 print(transcript)
+                
+                if exam_type.lower() == 'desc' or exam_type.lower() == 'des':
+                    DesAns(
+                        Q_id = question_id,
+                        ANSWERS = transcript,
+                        attemptID = attempt_id
+                    )
+                    db.add(DesAns)
+                    db.commit()
+                
                 if not is_match:
                     # err = _save_to_db(transcript)
                     # if err:
@@ -1141,49 +1152,114 @@ class ProctoringController:
     #         return {'fail': 'ERROR'}
         
         
+    # @staticmethod
+    # async def detect_objects(file: UploadFile, attempt_id: int, time: str, db: Session):
+
+    #     try:
+    #         contents = await file.read()
+
+    #         image_array = ProctoringController.bytes_to_numpy(contents)
+
+    #         server_path = await asyncio.to_thread(
+    #                     ProctoringController.saveImageOnServer, back_camera_base_folder , contents, attempt_id, time
+    #                 )
+    #         print(f'image save at {server_path}')
+
+    #         results = object_detection_model(image_array)
+
+    #         detected_flag = False
+    #         detected_objects = []
+
+    #         for r in results:
+    #             for box in r.boxes:
+    #                 cls_id = int(box.cls[0])
+    #                 label = object_detection_model.names[cls_id]
+
+    #                 if label in cheating_objects:
+    #                     detected_flag = True
+
+    #                     if label not in detected_objects:
+    #                         detected_objects.append(label)
+
+
+    #         if detected_objects:
+    #             print("No cheating objects detected.")
+
+    #             objects = ""
+    #             for obj in detected_objects:
+    #                 objects += obj + ","
+    #                 print(f"Detected cheating object: {obj}")
+    #             try:
+    #                 new_record = DetectedObjects(
+    #                     attemptID = attempt_id,
+    #                     objects = objects,
+    #                     timestamp = datetime.now(),
+    #                     image_path = server_path
+    #                 )
+    #                 db.add(new_record)
+    #                 db.commit()
+    #             except Exception as e:
+    #                 db.rollback()
+    #                 print(f"DB ERROR: {e}")
+    #                 return {'fail': f'database error: {e}'}
+
+    #         return {
+    #             "cheating_detected": detected_flag,
+    #             "detected_objects": detected_objects
+    #         }
+    #     except Exception as e:
+    #         return {'fail': f'database error: {e}'}
+    
     @staticmethod
     async def detect_objects(file: UploadFile, attempt_id: int, time: str, db: Session):
-
         try:
             contents = await file.read()
-
             image_array = ProctoringController.bytes_to_numpy(contents)
-
             server_path = await asyncio.to_thread(
-                        ProctoringController.saveImageOnServer, back_camera_base_folder , contents, attempt_id, time
-                    )
-            print(f'image save at {server_path}')
-
+                ProctoringController.saveImageOnServer, back_camera_base_folder, contents, attempt_id, time
+            )
+            print(f'image saved at {server_path}')
+            
             results = object_detection_model(image_array)
-
+            
             detected_flag = False
-            detected_objects = []
+            detected_objects = {}
 
             for r in results:
                 for box in r.boxes:
                     cls_id = int(box.cls[0])
                     label = object_detection_model.names[cls_id]
-
+                    
                     if label in cheating_objects:
                         detected_flag = True
+                    
+                    if label in detected_objects:
+                        detected_objects[label] += 1
+                    else:
+                        detected_objects[label] = 1
 
-                        if label not in detected_objects:
-                            detected_objects.append(label)
+            print(f"Detected objects: {detected_objects}")
 
+            # Check karo k sirf 1 laptop ya sirf 1 phone hai aur kuch nahi
+            laptop_count = detected_objects.get('laptop', 0)
+            phone_count = detected_objects.get('cell phone', 0)
+            total_objects = len(detected_objects)
 
-            if detected_objects:
-                print("No cheating objects detected.")
+            only_one_laptop = laptop_count == 1 and phone_count == 0 and total_objects == 1
+            only_one_phone = phone_count == 1 and laptop_count == 0 and total_objects == 1
 
-                objects = ""
-                for obj in detected_objects:
-                    objects += obj + ","
-                    print(f"Detected cheating object: {obj}")
+            allowed_case = only_one_laptop or only_one_phone
+
+            if detected_objects and not allowed_case:
+                objects = ", ".join([f"{obj}({count})" for obj, count in detected_objects.items()])
+                print(f"Objects string: {objects}")
+                
                 try:
                     new_record = DetectedObjects(
-                        attemptID = attempt_id,
-                        objects = objects,
-                        timestamp = datetime.now(),
-                        image_path = server_path
+                        attemptID=attempt_id,
+                        objects=objects,
+                        timestamp=datetime.now(),
+                        image_path=server_path
                     )
                     db.add(new_record)
                     db.commit()
@@ -1191,16 +1267,17 @@ class ProctoringController:
                     db.rollback()
                     print(f"DB ERROR: {e}")
                     return {'fail': f'database error: {e}'}
+            else:
+                print("Allowed case - DB mein data enter nahi hoga.")
 
             return {
                 "cheating_detected": detected_flag,
                 "detected_objects": detected_objects
             }
+        
         except Exception as e:
-            return {'fail': f'database error: {e}'}
-    
-    
-    
+            return {'fail': f'error: {e}'}
+        
     @staticmethod
     async def FaceProctoringParallel(file: UploadFile, attempt_id: int, identity_no: str, time: str, db: Session):
         '''This method checks the face proctoring, saving the image on the server and adds the entry in the database in the student exam log table.'''
@@ -1315,100 +1392,257 @@ class ProctoringController:
 
 
 
+    # @staticmethod
+    # def compute_cheating(s_id: int, e_id: int, db: Session):
+    #     try:
+    #         attempt = db.query(ExamAttempt.ID, ExamAttempt.status).filter(ExamAttempt.studentID == s_id, ExamAttempt.examID == e_id).first()
+    #         attempt_id = attempt.ID # type: ignore
+    #         student_exam_status = attempt.status # type: ignore
+            
+    #         already_cheating_computed = db.query(CheatingSummary).filter(CheatingSummary.attempt_id == attempt_id).first() # type: ignore
+            
+    #         if already_cheating_computed:
+    #             return {
+    #                 'face_percentage': already_cheating_computed.sus_face_percentage,
+    #                 'voice_percentage': already_cheating_computed.sus_voice_percentage,
+    #                 'is_object_suspicious': already_cheating_computed.is_object_suspicious,
+    #             }
+                
+            
+    #         all_face_logs = db.query(StudentExamLog).filter(StudentExamLog.attempt_id == attempt_id).all()
+            
+    #         all_voice_logs = []
+            
+    #         examType = db.query(Exam.E_TYPE).join(ExamAttempt, Exam.ID == ExamAttempt.examID).filter(ExamAttempt.ID == attempt_id).scalar() # type: ignore
+
+    #         if examType.lower() == 'mcq':
+    #             all_voice_logs = db.query(StudentMCQExamAudioChunk).filter(StudentMCQExamAudioChunk.attemptID == attempt_id).all()
+    #         elif examType.lower() == 'desc':
+    #             all_voice_logs = db.query(StudentDESCExamAudioChunk).filter(StudentDESCExamAudioChunk.attemptID == attempt_id).all()
+            
+    #         sus_face_logs = [log for log in all_face_logs if log.is_suspicious]
+    #         sus_voice_logs = [log for log in all_voice_logs if log.is_suspicious]
+    #         all_object_logs = db.query(DetectedObjects).filter(DetectedObjects.attemptID == attempt_id).all()
+            
+    #         face_threshold, voice_threshold = ProctoringController.cheating_threshold()
+            
+    #         face_cheating_percent = ProctoringController.compute_cheating_percentage(len(all_face_logs), len(sus_face_logs))
+    #         voice_cheating_percent = ProctoringController.compute_cheating_percentage(len(all_voice_logs), len(sus_voice_logs))
+            
+    #         print(f'Face cheating: {face_cheating_percent}% (threshold: {face_threshold}%), Voice cheating: {voice_cheating_percent}% (threshold: {voice_threshold}%)')
+    #         # print(f'total face logs: {len(all_face_logs)}, suspicious face logs: {len(sus_face_logs)}, total voice logs: {len(all_voice_logs)}, total object logs: {len(all_bject_logs)}')
+            
+    #         is_voice_suspicious = False
+    #         is_face_suspicious = False
+    #         is_object_suspicious = False
+            
+    #         if all_object_logs:
+    #             is_object_suspicious = True
+                
+    #         if face_cheating_percent >= face_threshold:
+    #             is_face_suspicious = True
+                
+                
+    #         if voice_cheating_percent >= voice_threshold:
+    #             is_voice_suspicious = True
+                
+    #         if is_voice_suspicious != False or is_face_suspicious != False or is_object_suspicious != False:
+    #             if student_exam_status.lower() != 'active':
+    #                 new_summary = CheatingSummary(
+    #                     attempt_id = attempt_id,
+    #                     is_voice_suspicious = is_voice_suspicious,
+    #                     is_face_suspicious = is_face_suspicious,
+    #                     is_object_suspicious = is_object_suspicious,
+    #                     sus_voice_percentage = voice_cheating_percent if is_voice_suspicious else 0.0,
+    #                     sus_face_percentage = face_cheating_percent if is_face_suspicious else 0.0
+    #                 )
+    #                 db.add(new_summary)
+    #                 db.commit()
+                
+    #                 return {
+    #                         'face_percentage': new_summary.sus_face_percentage,
+    #                         'voice_percentage': new_summary.sus_voice_percentage,
+    #                         'is_object_suspicious': new_summary.is_object_suspicious,
+    #                     }
+    #             else:
+    #                 return {
+    #                         'face_percentage': face_cheating_percent if is_face_suspicious else 0.0,
+    #                         'voice_percentage': voice_cheating_percent if is_voice_suspicious else 0.0,
+    #                         'is_object_suspicious': is_object_suspicious,
+    #                     }
+                
+    #         return {'success': False, 'message': 'No suspicious activity detected'}
+
+    #     except Exception as e:
+    #         db.rollback()
+    #         return {'success': False, 'message': f'Error: {e}'}
+                
+    
+    # @staticmethod
+    # def compute_cheating_percentage(total_logs: int, suspicious_logs: int):
+    #     if total_logs == 0:
+    #         return 0.0
+    #     return round((suspicious_logs / total_logs) * 100, 2)
+            
+    
+    # @staticmethod
+    # def cheating_threshold():
+    #     # face camera threshold, voice threshold
+    #     return 20, 10
+    
+    
+    
+    
+    # Consecutive suspicious logs check
+    # ///////////////////////////
     @staticmethod
     def compute_cheating(s_id: int, e_id: int, db: Session):
         try:
-            attempt = db.query(ExamAttempt.ID, ExamAttempt.status).filter(ExamAttempt.studentID == s_id, ExamAttempt.examID == e_id).first()
-            attempt_id = attempt.ID # type: ignore
-            student_exam_status = attempt.status # type: ignore
+            attempt = db.query(ExamAttempt.ID, ExamAttempt.status).filter(
+                ExamAttempt.studentID == s_id, 
+                ExamAttempt.examID == e_id
+            ).first()
             
-            already_cheating_computed = db.query(CheatingSummary).filter(CheatingSummary.attempt_id == attempt_id).first() # type: ignore
-            
+            attempt_id           = attempt.ID          # type: ignore
+            student_exam_status  = attempt.status      # type: ignore
+
+            # Pehle check karo — already computed hai?
+            already_cheating_computed = db.query(CheatingSummary).filter(
+                CheatingSummary.attempt_id == attempt_id
+            ).first()
+
             if already_cheating_computed:
                 return {
-                    'face_percentage': already_cheating_computed.sus_face_percentage,
-                    'voice_percentage': already_cheating_computed.sus_voice_percentage,
+                    'face_percentage':     already_cheating_computed.sus_face_percentage,
+                    'voice_percentage':    already_cheating_computed.sus_voice_percentage,
                     'is_object_suspicious': already_cheating_computed.is_object_suspicious,
                 }
-                
-            
-            all_face_logs = db.query(StudentExamLog).filter(StudentExamLog.attempt_id == attempt_id).all()
-            
+
+            # ── Logs fetch karo ──────────────────────────────────────────
+            all_face_logs  = db.query(StudentExamLog).filter(
+                StudentExamLog.attempt_id == attempt_id
+            ).order_by(StudentExamLog.TIMESTAMP).all()   # consecutive ke liye order zaruri hai
+
             all_voice_logs = []
-            
-            examType = db.query(Exam.E_TYPE).join(ExamAttempt, Exam.ID == ExamAttempt.examID).filter(ExamAttempt.ID == attempt_id).scalar() # type: ignore
+            examType = db.query(Exam.E_TYPE).join(
+                ExamAttempt, Exam.ID == ExamAttempt.examID
+            ).filter(ExamAttempt.ID == attempt_id).scalar()  # type: ignore
 
             if examType.lower() == 'mcq':
-                all_voice_logs = db.query(StudentMCQExamAudioChunk).filter(StudentMCQExamAudioChunk.attemptID == attempt_id).all()
+                all_voice_logs = db.query(StudentMCQExamAudioChunk).filter(
+                    StudentMCQExamAudioChunk.attemptID == attempt_id
+                ).all()
             elif examType.lower() == 'desc':
-                all_voice_logs = db.query(StudentDESCExamAudioChunk).filter(StudentDESCExamAudioChunk.attemptID == attempt_id).all()
-            
-            sus_face_logs = [log for log in all_face_logs if log.is_suspicious]
+                all_voice_logs = db.query(StudentDESCExamAudioChunk).filter(
+                    StudentDESCExamAudioChunk.attemptID == attempt_id
+                ).all()
+
+            # ── Suspicious logs ──────────────────────────────────────────
+            sus_face_logs  = [log for log in all_face_logs  if log.is_suspicious]
             sus_voice_logs = [log for log in all_voice_logs if log.is_suspicious]
-            all_object_logs = db.query(DetectedObjects).filter(DetectedObjects.attemptID == attempt_id).all()
-            
+            all_object_logs = db.query(DetectedObjects).filter(
+                DetectedObjects.attemptID == attempt_id
+            ).all()
+
+            # ── Thresholds ───────────────────────────────────────────────
             face_threshold, voice_threshold = ProctoringController.cheating_threshold()
-            
-            face_cheating_percent = ProctoringController.compute_cheating_percentage(len(all_face_logs), len(sus_face_logs))
-            voice_cheating_percent = ProctoringController.compute_cheating_percentage(len(all_voice_logs), len(sus_voice_logs))
-            
-            print(f'Face cheating: {face_cheating_percent}% (threshold: {face_threshold}%), Voice cheating: {voice_cheating_percent}% (threshold: {voice_threshold}%)')
-            # print(f'total face logs: {len(all_face_logs)}, suspicious face logs: {len(sus_face_logs)}, total voice logs: {len(all_voice_logs)}, total object logs: {len(all_bject_logs)}')
-            
-            is_voice_suspicious = False
-            is_face_suspicious = False
-            is_object_suspicious = False
-            
-            if all_object_logs:
-                is_object_suspicious = True
-                
-            if face_cheating_percent >= face_threshold:
-                is_face_suspicious = True
-                
-                
-            if voice_cheating_percent >= voice_threshold:
-                is_voice_suspicious = True
-                
-            if is_voice_suspicious != False or is_face_suspicious != False or is_object_suspicious != False:
-                if student_exam_status.lower() != 'active':
-                    new_summary = CheatingSummary(
-                        attempt_id = attempt_id,
-                        is_voice_suspicious = is_voice_suspicious,
-                        is_face_suspicious = is_face_suspicious,
-                        is_object_suspicious = is_object_suspicious,
-                        sus_voice_percentage = voice_cheating_percent if is_voice_suspicious else 0.0,
-                        sus_face_percentage = face_cheating_percent if is_face_suspicious else 0.0
-                    )
-                    db.add(new_summary)
-                    db.commit()
-                
-                    return {
-                            'face_percentage': new_summary.sus_face_percentage,
-                            'voice_percentage': new_summary.sus_voice_percentage,
-                            'is_object_suspicious': new_summary.is_object_suspicious,
-                        }
-                else:
-                    return {
-                            'face_percentage': face_cheating_percent if is_face_suspicious else 0.0,
-                            'voice_percentage': voice_cheating_percent if is_voice_suspicious else 0.0,
-                            'is_object_suspicious': is_object_suspicious,
-                        }
-                
+
+            # ── Percentage ───────────────────────────────────────────────
+            face_cheating_percent  = ProctoringController.compute_cheating_percentage(
+                len(all_face_logs),  len(sus_face_logs)
+            )
+            voice_cheating_percent = ProctoringController.compute_cheating_percentage(
+                len(all_voice_logs), len(sus_voice_logs)
+            )
+
+            # ── Consecutive check ────────────────────────────────────────
+            face_consecutive  = ProctoringController.compute_consecutive_suspicious(
+                all_face_logs,  consecutive_threshold=10
+            )
+            voice_consecutive = ProctoringController.compute_consecutive_suspicious(
+                all_voice_logs, consecutive_threshold=5
+            )
+
+            print(f"Face  → percentage: {face_cheating_percent}%  | max consecutive: {face_consecutive['max_consecutive']}")
+            print(f"Voice → percentage: {voice_cheating_percent}% | max consecutive: {voice_consecutive['max_consecutive']}")
+
+            # ── Final suspicious flags ───────────────────────────────────
+            is_face_suspicious   = (
+                face_cheating_percent  >= face_threshold or
+                face_consecutive['is_suspicious']
+            )
+            is_voice_suspicious  = (
+                voice_cheating_percent >= voice_threshold or
+                voice_consecutive['is_suspicious']
+            )
+            is_object_suspicious = bool(all_object_logs)
+
+            # ── Active exam — save mat karo, sirf return karo ────────────
+            if student_exam_status.lower() == 'active':
+                return {
+                    'face_percentage':      face_cheating_percent  if is_face_suspicious  else 0.0,
+                    'voice_percentage':     voice_cheating_percent if is_voice_suspicious else 0.0,
+                    'is_object_suspicious': is_object_suspicious,
+                }
+
+            # ── Exam khatam — DB mein save karo ──────────────────────────
+            if is_face_suspicious or is_voice_suspicious or is_object_suspicious:
+                new_summary = CheatingSummary(
+                    attempt_id           = attempt_id,
+                    is_voice_suspicious  = is_voice_suspicious,
+                    is_face_suspicious   = is_face_suspicious,
+                    is_object_suspicious = is_object_suspicious,
+                    sus_voice_percentage = voice_cheating_percent if is_voice_suspicious else 0.0,
+                    sus_face_percentage  = face_cheating_percent  if is_face_suspicious  else 0.0
+                )
+                db.add(new_summary)
+                db.commit()
+
+                return {
+                    'face_percentage':      new_summary.sus_face_percentage,
+                    'voice_percentage':     new_summary.sus_voice_percentage,
+                    'is_object_suspicious': new_summary.is_object_suspicious,
+                }
+
             return {'success': False, 'message': 'No suspicious activity detected'}
 
         except Exception as e:
             db.rollback()
             return {'success': False, 'message': f'Error: {e}'}
-                
-    
+
+
+    # ── Helper functions ─────────────────────────────────────────────────────────
+
+    @staticmethod
+    def compute_consecutive_suspicious(logs, consecutive_threshold: int = 5):
+        """
+        Logs mein se sabse lamba consecutive suspicious streak dhundho
+        """
+        max_consecutive = 0
+        current_streak  = 0
+
+        for log in logs:
+            if log.is_suspicious:
+                current_streak += 1
+                max_consecutive = max(max_consecutive, current_streak)
+            else:
+                current_streak = 0  # streak toot gayi
+
+        return {
+            'max_consecutive': max_consecutive,
+            'is_suspicious':   max_consecutive >= consecutive_threshold
+        }
+
+
     @staticmethod
     def compute_cheating_percentage(total_logs: int, suspicious_logs: int):
         if total_logs == 0:
             return 0.0
         return round((suspicious_logs / total_logs) * 100, 2)
-            
-    
+
+
     @staticmethod
     def cheating_threshold():
-        # face camera threshold, voice threshold
+        # face threshold, voice threshold
         return 20, 10
+
