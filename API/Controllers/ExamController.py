@@ -376,11 +376,11 @@ class ExamController:
             start_time = exam.E_DATE  # 2026-05-16 21:00:00
             end_time = start_time + timedelta(minutes=exam.timeInMinutes)
             
-            if now >= end_time:
+            if now >= end_time: # type: ignore
                 exam.STATUS = "completed"
                 updated.append({"id": exam.ID, "status": "completed"})
                 
-            elif now >= start_time:
+            elif now >= start_time: # type: ignore
                 exam.STATUS = "active"
                 updated.append({"id": exam.ID, "status": "active"})
         
@@ -391,3 +391,15 @@ class ExamController:
             "updated": updated,
             "checked_at": now
         }
+        
+    @staticmethod
+    def check_attempt_status(attempt_id: int, db: Session):
+        ''' to check the attempt status. if return removed, stop the exam of studnet from frontend'''
+        attempt = db.query(ExamAttempt.status).filter(
+            ExamAttempt.ID == attempt_id
+        ).first()
+        
+        if not attempt:
+            return {'error': 'not found'}
+        
+        return {'status': attempt.status}

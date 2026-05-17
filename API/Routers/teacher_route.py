@@ -50,3 +50,8 @@ def markVoiceAsUnsuspicious(logId: int, examtype: str, db: Session = Depends(get
 def getAllStudentsInCourseAgainstTeacher(examId: int, teacherId: int, db: Session = Depends(get_db)):
     return TeacherController.getAllStudentsInCourseAgainstTeacher(examId, teacherId, db)
 
+
+
+@router.get("/removeStudentFromExam/{sid}/{examid}")
+def removestudnetfromexam(sid: int, examid: int,  db: Session = Depends(get_db)):
+    return TeacherController.remove_student_from_exam(sid, examid, db)

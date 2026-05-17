@@ -616,3 +616,31 @@ class TeacherController:
         except Exception as e:
             db.rollback()
             return {"error": f"Database error: {str(e)}"}, 500
+        
+        
+        
+    @staticmethod
+    def remove_student_from_exam(sid: int,  examid: int, db: Session):
+        try:
+            attempt = db.query(ExamAttempt).filter(
+                ExamAttempt.studentID == sid, 
+                ExamAttempt.examID == examid
+            ).first()
+            
+            if not attempt:
+                return {'error': 'Student attempt not found'}
+            
+            if attempt.status.lower() != 'active':
+                return {'error': 'Student is not currently in exam'}
+            
+            # Status remove kar do
+            attempt.status = 'removed'
+            db.commit()
+            
+            return {'success': True, 'message': 'Student removed from exam'}
+        
+        except Exception as e:
+            db.rollback()
+            return {'error': f'Error: {e}'}
+    
+    

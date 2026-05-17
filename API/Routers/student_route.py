@@ -34,3 +34,8 @@ def fetchStudentExams(s_id: int, db: Session = Depends (get_db)):
 @router.get('/updateStudentExamStatus/{attempt_id}')
 def updateStudentExamStatus(attempt_id: int, db: Session = Depends(get_db)):
     return StudentController.updateStudentExamStatus(attempt_id, db)
+
+
+@router.get('/updateStudentExamStatus/{stdId}/{examId}')
+def updateStudentExamStatustoCompleted(stdId: int, examId: int, db: Session = Depends(get_db)):
+    return StudentController.updateStudentExamStatustoComplete(stdId, examId, db)

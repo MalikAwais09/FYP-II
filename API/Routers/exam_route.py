@@ -62,7 +62,7 @@ def setBackCameraStatus(attempt_id: int, db: Session = session):
 def save_mcq_answers(data: List[SaveMcqAns], attempt_id: int, db: Session = session):
     return ExamController.save_mcq_answers(data,attempt_id, db)
 
-@router.get('submitExam/{attempt_id}')
+@router.get('/submitExam/{attempt_id}')
 def submit_exam(attempt_id: int, db: Session = session):
     return ExamController.submit_exam(attempt_id, db)
 
@@ -75,4 +75,10 @@ def save_single_mcq_answer(s_id: int, e_id: int, mcq_id: int, option_id: int, db
 def update_exam_status(db: Session = Depends(get_db)):
     return ExamController.update_exam_status(db)
 
-    
+
+
+@router.get("/checkAttemptStatus/{attempt_id}")
+def check_attempt_status(attempt_id: int, db: Session = Depends(get_db)):
+    return ExamController.check_attempt_status(attempt_id, db)
+
+

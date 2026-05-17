@@ -242,3 +242,17 @@ class StudentController:
         except Exception as e:
             db.rollback()
             return {'error': f'Database error: {e}'}
+        
+    @staticmethod
+    def updateStudentExamStatustoComplete(stdId: int, examId: int, db: Session):
+        """Function to update the status of student exam attempt to completed after student has submitted the exam"""
+        try:
+            attempt = db.query(ExamAttempt).filter(ExamAttempt.studentID == stdId, ExamAttempt.examID == examId).first()
+            if not attempt:
+                return {'error': 'Attempt record not found.'}
+            attempt.status = 'completed'
+            db.commit()
+            return {'message': 'Exam attempt status updated to completed.'}
+        except Exception as e:
+            db.rollback()
+            return {'error': f'Database error: {e}'}
