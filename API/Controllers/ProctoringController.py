@@ -438,12 +438,12 @@ class ProctoringController:
                 print(transcript)
                 
                 if exam_type.lower() == 'desc' or exam_type.lower() == 'des':
-                    DesAns(
-                        Q_id = question_id,
+                    new_record = DesAns(
+                        Q_ID = question_id,
                         ANSWERS = transcript,
                         attemptID = attempt_id
                     )
-                    db.add(DesAns)
+                    db.add(new_record)
                     db.commit()
                 
                 if not is_match:
@@ -499,6 +499,10 @@ class ProctoringController:
             }
 
         except Exception as e:
+            ProctoringController.save_audio_to_db(
+                db, exam_type, attempt_id, question_id,
+                relative_path, "", False, False, True, start_time, end_time
+            )
             return {'error': str(e)}
     
     
