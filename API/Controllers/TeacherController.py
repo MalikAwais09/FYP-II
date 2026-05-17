@@ -655,16 +655,27 @@ class TeacherController:
             if not result:
                 return {'error': 'no student found'}
             else:
-                students = [
-                    {
-                        "studentID": std.studentID,
-                        "studentName": std.studentName,
-                        "identityNo": std.identityNo,
-                        "section": std.section,
-                        "status": std.status
-                    }
-                    for std in result
-                ]
+                students = []
+                for std in result:
+                # Har student ke liye cheating compute karo
+                    cheating_result = ProctoringController.compute_cheating(std.studentID, examId, db)
+
+                    # Cheating detect hui ya nahi
+                    is_cheating = (
+                        cheating_result.get('face_percentage', 0) > 0 or
+                        cheating_result.get('voice_percentage', 0) > 0 or
+                        cheating_result.get('is_object_suspicious', False)
+                    )
+
+                    students.append({
+                        "studentID":      std.studentID,
+                        "studentName":    std.studentName,
+                        "identityNo":     std.identityNo,
+                        "section":        std.section,
+                        "status":         std.status,
+                        "cheating_status": is_cheating  # ← True ya False
+                    })
+
                 return {"success": students}
         except Exception as e:
             db.rollback()
