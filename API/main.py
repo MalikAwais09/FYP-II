@@ -58,6 +58,22 @@ app.include_router(teacher_route.router)
 #app.include_router(voice_route.router)
 
 
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+# main.py ya jahan app define hai wahan add karo
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"=== 422 Validation Error ===")
+    print(f"URL: {request.url}")
+    print(f"Errors: {exc.errors()}")
+    print(f"============================")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
+    
 
 from concurrent.futures import ProcessPoolExecutor
 

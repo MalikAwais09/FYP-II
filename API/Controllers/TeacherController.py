@@ -13,7 +13,9 @@ from pathlib import Path
 root_dir = Path(__file__).resolve().parent.parent # Points to API Folder 
 
 # import Models
-from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk,CourseAllocation,  CourseEnrollment, CheatingSummary, DetectedObjects)
+from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk,CourseAllocation,  CourseEnrollment, CheatingSummary, DetectedObjects, ExamProctoringConfig)
+
+from Schemas.ExamConfigSchema import ExamProctoringConfigCreate
 
 
 
@@ -706,5 +708,66 @@ class TeacherController:
         except Exception as e:
             db.rollback()
             return {'error': f'Error: {e}'}
-    
-   
+
+    @staticmethod
+    def createOrUpdateExamConfig(exam_id: int, config_data: ExamProctoringConfigCreate, db: Session):
+        try:
+            exam = db.query(Exam).filter(Exam.ID == exam_id).first()
+            if not exam:
+                return {"error": "Exam not found"}
+
+            config = db.query(ExamProctoringConfig).filter(ExamProctoringConfig.exam_id == exam_id).first()
+
+            if config:
+                # Update existing
+                config.face_enabled = config_data.face_enabled
+                config.face_suspicious_percent = config_data.face_suspicious_percent
+                config.face_consecutive_limit = config_data.face_consecutive_limit
+                config.voice_enabled = config_data.voice_enabled
+                config.voice_suspicious_percent = config_data.voice_suspicious_percent
+                config.voice_consecutive_limit = config_data.voice_consecutive_limit
+                config.object_detection_enabled = config_data.object_detection_enabled
+                config.object_detection_count_threshold = config_data.object_detection_count_threshold
+                config.action_on_threshold = config_data.action_on_threshold
+                config.warn_before_remove = config_data.warn_before_remove
+                config.warning_count_before_remove = config_data.warning_count_before_remove
+                db.commit()
+                db.refresh(config)
+                return {"success": True, "message": "Configuration updated successfully", "data": config}
+            else:
+                # Create new
+                new_config = ExamProctoringConfig(
+                    exam_id=exam_id,
+                    face_enabled=config_data.face_enabled,
+                    face_suspicious_percent=config_data.face_suspicious_percent,
+                    face_consecutive_limit=config_data.face_consecutive_limit,
+                    voice_enabled=config_data.voice_enabled,
+                    voice_suspicious_percent=config_data.voice_suspicious_percent,
+                    voice_consecutive_limit=config_data.voice_consecutive_limit,
+                    object_detection_enabled=config_data.object_detection_enabled,
+                    object_detection_count_threshold=config_data.object_detection_count_threshold,
+                    action_on_threshold=config_data.action_on_threshold,
+                    warn_before_remove=config_data.warn_before_remove,
+                    warning_count_before_remove=config_data.warning_count_before_remove
+                )
+                db.add(new_config)
+                db.commit()
+                db.refresh(new_config)
+                return {"success": True, "message": "Configuration created successfully", "data": new_config}
+
+        except Exception as e:
+            db.rollback()
+            return {"error": f"Database error: {str(e)}"}
+
+    @staticmethod
+    def getExamConfig(exam_id: int, db: Session):
+        try:
+            config = db.query(ExamProctoringConfig).filter(ExamProctoringConfig.exam_id == exam_id).first()
+            if config:
+                return {"success": True, "data": config}
+            else:
+                # Return default values if not configured
+                default_data = ExamProctoringConfigCreate()
+                return {"success": True, "data": default_data.dict(), "message": "Using default configuration"}
+        except Exception as e:
+            return {"error": f"Database error: {str(e)}"}

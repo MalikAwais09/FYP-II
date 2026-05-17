@@ -1,5 +1,5 @@
 from db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String
+from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 
 class ExamAttempt(Base):
@@ -11,6 +11,10 @@ class ExamAttempt(Base):
     status: Mapped[str] = mapped_column(String(50), default='active')  # in_progress, completed, etc.
     front_cam: Mapped[bool] = mapped_column(default=True)
     back_cam: Mapped[bool] = mapped_column(default=False)
+    
+    warning_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_warned_at = Column(DateTime, nullable=True)
+
     
     mcqAns_rship = relationship('MCQAns', back_populates='examAttempt_rship') #
     desAns_rship = relationship('DesAns', back_populates='examAttempt_rship')

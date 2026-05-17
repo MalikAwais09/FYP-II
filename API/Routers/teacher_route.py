@@ -3,6 +3,7 @@ from fastapi import APIRouter, File, Request, Depends, UploadFile, Form
 from sqlalchemy.orm import Session
 from db import get_db
 from Schemas.StudentLog import StudentLog
+from Schemas.ExamConfigSchema import ExamProctoringConfigCreate
 router = APIRouter()
 
 @router.get("/course-allocation/{course_id}/{teacher_id}")
@@ -54,3 +55,11 @@ def getAllStudentsInCourseAgainstTeacher(examId: int, teacherId: int, db: Sessio
 @router.get("/removeStudentFromExam/{sid}/{examid}")
 def removestudnetfromexam(sid: int, examid: int,  db: Session = Depends(get_db)):
     return TeacherController.remove_student_from_exam(sid, examid, db)
+
+@router.post('/examConfig/{examId}')
+def createOrUpdateExamConfig(examId: int, config_data: ExamProctoringConfigCreate, db: Session = Depends(get_db)):
+    return TeacherController.createOrUpdateExamConfig(examId, config_data, db)
+
+@router.get('/examConfig/{examId}')
+def getExamConfig(examId: int, db: Session = Depends(get_db)):
+    return TeacherController.getExamConfig(examId, db)

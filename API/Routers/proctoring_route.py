@@ -51,4 +51,8 @@ async def ObjectDetection(file: UploadFile = File(...), attempt_id: int = Form(.
 def fetch_cheating_summary(s_id: int, e_id: int, db: Session = Depends(get_db)):
     return ProctoringController.compute_cheating(s_id, e_id, db)
 
+@router.get('/checkThresholdAction/{studentId}/{examId}')
+def check_threshold_action(studentId: int, examId: int, db: Session = Depends(get_db)):
+    return ProctoringController.check_threshold_action(studentId, examId, db)
+
 # uvicorn main:app --reload --host 0.0.0.0 --port 8000 

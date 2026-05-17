@@ -34,7 +34,7 @@ yolo_model_path = str(root_dir.parent / "ML/ObjectDetection/yolov8n.pt")
 object_detection_model = YOLO(yolo_model_path)
 
 # import Models
-from Models import (ProctoringEvent, CameraMonitoring, ScreenMonitoring, StudentExamLog, ExamAttempt, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk, DetectedObjects, CheatingSummary, Exam, DesAns)
+from Models import (ProctoringEvent, CameraMonitoring, ScreenMonitoring, StudentExamLog, ExamAttempt, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk, DetectedObjects, CheatingSummary, Exam, DesAns, ExamProctoringConfig)
 
 # tarined models for prediction
 from ML.FaceCount.faceCount import FaceCounter
@@ -1286,6 +1286,14 @@ class ProctoringController:
     async def detect_objects(file: UploadFile, attempt_id: int, time: str, db: Session):
         '''detect cheating with person'''
         try:
+            examAttempt = db.query(ExamAttempt).filter(ExamAttempt.ID == attempt_id).first()
+            if not examAttempt:
+                return {'fail': 'no student record found.'}
+
+            config = db.query(ExamProctoringConfig).filter_by(exam_id=examAttempt.examID).first()
+            if config and not config.object_detection_enabled:
+                return {'skipped': 'Object detection is disabled for this exam.'}
+
             contents = await file.read()
             image_array = ProctoringController.bytes_to_numpy(contents)
             server_path = await asyncio.to_thread(
@@ -1365,6 +1373,10 @@ class ProctoringController:
             
             if not examAttempt:
                 return {'fail': 'no student record found.'}
+
+            config = db.query(ExamProctoringConfig).filter_by(exam_id=examAttempt.examID).first()
+            if config and not config.face_enabled:
+                return {'skipped': 'Face monitoring is disabled for this exam.'}
 
             image_bytes = await file.read()
             
@@ -1623,8 +1635,14 @@ class ProctoringController:
                 DetectedObjects.attemptID == attempt_id
             ).all()
 
-            # ── Thresholds ───────────────────────────────────────────────
-            face_threshold, voice_threshold = ProctoringController.cheating_threshold()
+            # ── Thresholds (From Config) ─────────────────────────────────
+            config = db.query(ExamProctoringConfig).filter_by(exam_id=e_id).first()
+
+            face_threshold = config.face_suspicious_percent if config else 20
+            voice_threshold = config.voice_suspicious_percent if config else 10
+            face_cons_limit = config.face_consecutive_limit if config else 10
+            voice_cons_limit = config.voice_consecutive_limit if config else 5
+            obj_count_limit = config.object_detection_count_threshold if config else 1
 
             # ── Percentage ───────────────────────────────────────────────
             face_cheating_percent  = ProctoringController.compute_cheating_percentage(
@@ -1636,10 +1654,10 @@ class ProctoringController:
 
             # ── Consecutive check ────────────────────────────────────────
             face_consecutive  = ProctoringController.compute_consecutive_suspicious(
-                all_face_logs,  consecutive_threshold=10
+                all_face_logs,  consecutive_threshold=face_cons_limit
             )
             voice_consecutive = ProctoringController.compute_consecutive_suspicious(
-                all_voice_logs, consecutive_threshold=5
+                all_voice_logs, consecutive_threshold=voice_cons_limit
             )
 
             print(f"Face  → percentage: {face_cheating_percent}%  | max consecutive: {face_consecutive['max_consecutive']}")
@@ -1654,7 +1672,7 @@ class ProctoringController:
                 voice_cheating_percent >= voice_threshold or
                 voice_consecutive['is_suspicious']
             )
-            is_object_suspicious = bool(all_object_logs)
+            is_object_suspicious = len(all_object_logs) >= obj_count_limit
 
             # ── Active exam — save mat karo, sirf return karo ────────────
             if student_exam_status.lower() == 'active':
@@ -1691,6 +1709,63 @@ class ProctoringController:
 
 
     # ── Helper functions ─────────────────────────────────────────────────────────
+
+    @staticmethod
+    def check_threshold_action(student_id: int, exam_id: int, db: Session):
+        try:
+            attempt = db.query(ExamAttempt).filter(
+                ExamAttempt.studentID == student_id, 
+                ExamAttempt.examID == exam_id
+            ).first()
+
+            if not attempt or attempt.status.lower() != 'active':
+                return {'action': 'none', 'message': 'Exam not active or attempt not found'}
+
+            # Compute current cheating status
+            cheating_data = ProctoringController.compute_cheating(student_id, exam_id, db)
+            
+            if 'success' in cheating_data and cheating_data['success'] == False:
+                return {'action': 'none', 'message': 'No suspicious activity'}
+
+            # Check if any threshold is hit
+            config = db.query(ExamProctoringConfig).filter_by(exam_id=exam_id).first()
+            
+            face_threshold = config.face_suspicious_percent if config else 20
+            voice_threshold = config.voice_suspicious_percent if config else 10
+            
+            is_face_suspicious = cheating_data.get('face_percentage', 0) >= face_threshold
+            is_voice_suspicious = cheating_data.get('voice_percentage', 0) >= voice_threshold
+            is_object_suspicious = cheating_data.get('is_object_suspicious', False)
+
+            if is_face_suspicious or is_voice_suspicious or is_object_suspicious:
+                action_to_take = config.action_on_threshold if config else 'warn'
+                warn_before = config.warn_before_remove if config else True
+                max_warnings = config.warning_count_before_remove if config else 3
+
+                if action_to_take == 'remove':
+                    if not warn_before or attempt.warning_count >= max_warnings:
+                        attempt.status = 'removed'
+                        db.commit()
+                        return {'action': 'remove', 'message': 'Threshold reached. Student removed.'}
+                    else:
+                        # We need to warn first
+                        attempt.warning_count += 1
+                        attempt.last_warned_at = datetime.utcnow()
+                        db.commit()
+                        return {'action': 'warn', 'warning_count': attempt.warning_count, 'message': 'Warning issued.'}
+                
+                elif action_to_take == 'warn':
+                    # Just warn, never remove automatically
+                    attempt.warning_count += 1
+                    attempt.last_warned_at = datetime.utcnow()
+                    db.commit()
+                    return {'action': 'warn', 'warning_count': attempt.warning_count, 'message': 'Warning issued.'}
+
+            return {'action': 'none', 'message': 'Below thresholds'}
+
+        except Exception as e:
+            db.rollback()
+            return {'action': 'error', 'message': str(e)}
 
     @staticmethod
     def compute_consecutive_suspicious(logs, consecutive_threshold: int = 5):
@@ -1733,6 +1808,14 @@ class ProctoringController:
         Multiple speakers → labeled transcript (Student/Other), student-only ECAPA score.
         Suspicious audio always saved to DB.
         '''
+        examAttempt = db.query(ExamAttempt).filter(ExamAttempt.ID == attempt_id).first()
+        if not examAttempt:
+            return {'fail': 'no student record found.'}
+
+        config = db.query(ExamProctoringConfig).filter_by(exam_id=examAttempt.examID).first()
+        if config and not config.voice_enabled:
+            return {'skipped': 'Voice monitoring is disabled for this exam.'}
+
         # STEP 1: Read uploaded audio bytes from the request
         audio_bytes = await file.read()
         if not audio_bytes:

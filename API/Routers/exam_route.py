@@ -76,7 +76,6 @@ def update_exam_status(db: Session = Depends(get_db)):
     return ExamController.update_exam_status(db)
 
 
-
 @router.get("/checkAttemptStatus/{attempt_id}")
 def check_attempt_status(attempt_id: int, db: Session = Depends(get_db)):
     return ExamController.check_attempt_status(attempt_id, db)

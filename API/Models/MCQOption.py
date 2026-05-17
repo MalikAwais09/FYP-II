@@ -12,3 +12,7 @@ class MCQOption(Base):
     # Relationship
     question_rship = relationship('ExamMCQ', back_populates='option_rship')
     mcq_rship=relationship('MCQAns',back_populates='option_rship')
+    
+    
+    
+    

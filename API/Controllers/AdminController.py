@@ -507,10 +507,10 @@ class AdminController:
 
             # exam type ke hisaab se questions insert karo
             if exam_type == 'MCQ':
-                AdminController._insert_mcq(ques_df, exam_id, db)
+                AdminController._insert_mcq(ques_df, exam_id, db) # type: ignore
 
             elif exam_type == 'DESC':
-                AdminController._insert_desc(ques_df, exam_id, db)
+                AdminController._insert_desc(ques_df, exam_id, db) # type: ignore
 
             # total questions update karo
             new_exam.TOTAL_QUESTIONS = total_questions

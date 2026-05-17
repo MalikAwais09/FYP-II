@@ -29,3 +29,4 @@ from .StudentMCQExamAudioChunk import *
 from .StudentDESCExamAudioChunk import *
 from .DetectedObjects import *
 from .CheatingSummary import *
+from .ExamProctoringConfig import *
