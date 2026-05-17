@@ -16,8 +16,8 @@ from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users
 
 
 
-image_base_url = 'http://10.231.85.204:8000/images/'
-audio_base_url = 'http://10.231.85.204:8000/audios/'
+image_base_url = 'http://192.168.100.110:8000/images/'
+audio_base_url = 'http://192.168.100.110:8000/audios/'
 
 
 

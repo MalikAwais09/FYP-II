@@ -30,3 +30,7 @@ def fetchExamAttemptID(s_id: int, e_id: int, db: Session = Depends(get_db)):
 @router.get('/fetchStudentExams/{s_id}')
 def fetchStudentExams(s_id: int, db: Session = Depends (get_db)):
     return StudentController.fetch_student_exams(s_id, db)
+
+@router.get('/updateStudentExamStatus/{attempt_id}')
+def updateStudentExamStatus(attempt_id: int, db: Session = Depends(get_db)):
+    return StudentController.updateStudentExamStatus(attempt_id, db)
