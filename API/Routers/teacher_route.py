@@ -19,7 +19,7 @@ def teacherExams(teacherID: int, db: Session = Depends(get_db)):
 
 @router.get('/studentsAppearedInExam/{exam_id}')
 def studentsInExam(exam_id: int, db:Session = Depends(get_db)):
-    return TeacherController.appearedStudentsinExam(exam_id, db)
+    return TeacherController.appearedStudentsinExamWithCheatingStatus(exam_id, db)
 
 @router.post('/getStudentExamLog')
 def getStudentExamLog(data: StudentLog, db:Session = Depends(get_db)):
@@ -49,7 +49,6 @@ def markVoiceAsUnsuspicious(logId: int, examtype: str, db: Session = Depends(get
 @router.get('/getAllStudentsInCourseAgainstTeacher/{examId}/{teacherId}')
 def getAllStudentsInCourseAgainstTeacher(examId: int, teacherId: int, db: Session = Depends(get_db)):
     return TeacherController.getAllStudentsInCourseAgainstTeacher(examId, teacherId, db)
-
 
 
 @router.get("/removeStudentFromExam/{sid}/{examid}")

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import extract, func, distinct, case, cast, Time
 from datetime import datetime
 from fastapi.responses import JSONResponse
+from API.Controllers.ProctoringController import ProctoringController
 from Schemas.StudentLog import StudentLog
 from pydub import AudioSegment
 import os
@@ -12,7 +13,7 @@ from pathlib import Path
 root_dir = Path(__file__).resolve().parent.parent # Points to API Folder 
 
 # import Models
-from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk,CourseAllocation,  CourseEnrollment)
+from Models import (Exam,CourseAllocation,CourseOffering, Course, Teacher, Users, Section, Department, ExamAttempt, Student, StudentExamLog, StudentDESCExamAudioChunk, StudentMCQExamAudioChunk,CourseAllocation,  CourseEnrollment, CheatingSummary, DetectedObjects)
 
 
 
@@ -242,7 +243,59 @@ class TeacherController:
             db.rollback()
             return {"error": f"Database error: {str(e)}"}, 500
 
+    @staticmethod 
+    def appearedStudentsinExamWithCheatingStatus(exam_id: int, db: Session):
+        try:
+            result = (
+                db.query(
+                    distinct(ExamAttempt.studentID),
+                    Student.StudentID.label("studentID"),
+                    Users.Name.label("studentName"),
+                    Users.identity_no.label("identityNo"),
+                    ExamAttempt.status.label("status"),
+                    func.concat(Department.name, "-", Student.semester, Section.name).label("section")
+                )
+                .select_from(ExamAttempt)
+                .join(Exam, Exam.ID == ExamAttempt.examID)
+                .join(Student, Student.StudentID == ExamAttempt.studentID)
+                .join(Users, Users.ID == Student.userID)
+                .join(Section, Section.ID == Student.Section)
+                .join(Department, Department.ID == Section.department)
+                .filter(ExamAttempt.examID == exam_id, 
+                        CourseAllocation.SECTION == Student.Section)
+                .all()
+            )
 
+            if not result:
+                return {'error': 'no student found'}
+
+            students = []
+            for std in result:
+                # Har student ke liye cheating compute karo
+                cheating_result = ProctoringController.compute_cheating(std.studentID, exam_id, db)
+
+                # Cheating detect hui ya nahi
+                is_cheating = (
+                    cheating_result.get('face_percentage', 0) > 0 or
+                    cheating_result.get('voice_percentage', 0) > 0 or
+                    cheating_result.get('is_object_suspicious', False)
+                )
+
+                students.append({
+                    "studentID":      std.studentID,
+                    "studentName":    std.studentName,
+                    "identityNo":     std.identityNo,
+                    "section":        std.section,
+                    "status":         std.status,
+                    "cheating_status": is_cheating  # ← True ya False
+                })
+
+            return {"success": students}
+
+        except Exception as e:
+            db.rollback()
+            return {"error": f"Database error: {str(e)}"}, 500
+        
     @staticmethod
     def getStudentLogs(data: StudentLog, db:Session):
         """Gets only the count of logs."""
@@ -643,4 +696,4 @@ class TeacherController:
             db.rollback()
             return {'error': f'Error: {e}'}
     
-    
+   
