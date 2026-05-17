@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import extract, func, distinct, case, cast, Time
+from sqlalchemy import desc, extract, func, distinct, case, cast, Time
 from datetime import datetime
 from fastapi.responses import JSONResponse
 from API.Controllers.ProctoringController import ProctoringController
@@ -771,3 +771,65 @@ class TeacherController:
                 return {"success": True, "data": default_data.dict(), "message": "Using default configuration"}
         except Exception as e:
             return {"error": f"Database error: {str(e)}"}
+        
+        
+    from sqlalchemy import func, desc, case
+    from Models import Student, ExamAttempt, CheatingSummary
+
+    @staticmethod
+    def get_top_and_worst_students(db: Session):
+        # Har student ka cheating score calculate karna
+        student_scores = db.query(
+            Student.StudentID,
+            Users.Name,
+            # 1. Total Warnings ko points do (1 warning = 5 points)
+            func.sum(ExamAttempt.warning_count * 5).label('warning_score'),
+            
+            # 2. Total Removals ko points do (1 removal = 50 points)
+            func.sum(
+                case((ExamAttempt.status == 'removed', 50), else_=0)
+            ).label('removal_score'),
+            
+            # 3. Average Face & Voice Cheating Percentage
+            func.avg(func.coalesce(CheatingSummary.sus_face_percentage, 0)).label('avg_face'),
+            func.avg(func.coalesce(CheatingSummary.sus_voice_percentage, 0)).label('avg_voice')
+        ).outerjoin(
+            ExamAttempt, Student.StudentID == ExamAttempt.studentID
+        ).outerjoin(
+            CheatingSummary, ExamAttempt.ID == CheatingSummary.attempt_id
+        ).join(Users, Users.ID == Student.StudentID).group_by(
+            Student.StudentID, Student.Name
+        ).subquery()
+
+        # Total Score = warning + removal + face_avg + voice_avg
+        total_score_expr = (
+            func.coalesce(student_scores.c.warning_score, 0) +
+            func.coalesce(student_scores.c.removal_score, 0) +
+            func.coalesce(student_scores.c.avg_face, 0) +
+            func.coalesce(student_scores.c.avg_voice, 0)
+        )
+
+        # 🔴 Worst Students (Highest Score wale)
+        worst_students = db.query(
+            student_scores.c.StudentID,
+            student_scores.c.Name,
+            total_score_expr.label('total_cheating_score')
+        ).order_by(
+            desc('total_cheating_score')
+        ).limit(10).all() # <--- LIMIT 10 yahan hai (agar 4 hain to 4 hi aayenge)
+
+        # 🟢 Best Students (Lowest Score wale - ideally 0)
+        best_students = db.query(
+            student_scores.c.StudentID,
+            student_scores.c.Name,
+            total_score_expr.label('total_cheating_score')
+        ).filter(
+            total_score_expr >= 0 # Filter lagaya taake valid records ayen
+        ).order_by(
+            'total_cheating_score' # Ascending order
+        ).limit(10).all()
+
+        return {
+            "worst_students": [{"id": s.StudentID, "name": s.Name, "score": float(s.total_cheating_score)} for s in worst_students],
+            "best_students": [{"id": s.StudentID, "name": s.Name, "score": float(s.total_cheating_score)} for s in best_students]
+        }
