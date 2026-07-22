@@ -49,6 +49,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+
+# origins = [
+#     "http://localhost:3000", --> frontend ip address
+#     "https://yourfrontend.com",
+# ]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 app.include_router(user_route.router)
 app.include_router(student_route.router)
 app.include_router(admin_route.router)

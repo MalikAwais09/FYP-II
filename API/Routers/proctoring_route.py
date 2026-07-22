@@ -36,11 +36,11 @@ async def voiceProctoringDiarize(
     identity_no: str = Form(...), 
     question_id: int = Form(...), 
     exam_type: str = Form(...), 
-    start_time: str = Form(...), 
-    end_time: str = Form(...), 
+    # start_time: str = Form(...), 
+    # end_time: str = Form(...), 
     db: Session = Depends(get_db)
     ):
-    return await ProctoringController.VoiceProctoringDiarize(file, attempt_id, identity_no, question_id, exam_type, start_time, end_time, db)
+    return await ProctoringController.VoiceProctoringDiarize(file, attempt_id, identity_no, question_id, exam_type, db)
 
 
 @router.post('/detectObjects')

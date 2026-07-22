@@ -39,3 +39,14 @@ def updateStudentExamStatus(attempt_id: int, db: Session = Depends(get_db)):
 @router.get('/updateStudentExamStatus/{stdId}/{examId}')
 def updateStudentExamStatustoCompleted(stdId: int, examId: int, db: Session = Depends(get_db)):
     return StudentController.updateStudentExamStatustoComplete(stdId, examId, db)
+
+
+@router.get('/isStudentCheating/{stdId}/{examId}')
+def isCheating(stdId: int, examId: int, db: Session = Depends(get_db)):
+    return StudentController.isStudentCheating(stdId, examId, db)
+    
+
+@router.get('/isStudentCheatingAttempt/{attemptId}')
+def isStudentCheating(attemptId: int, db: Session = Depends(get_db)):
+    return StudentController.isStudentCheatingAttempt(attemptId, db)
+    

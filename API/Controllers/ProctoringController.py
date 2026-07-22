@@ -268,7 +268,10 @@ class ProctoringController:
         if not os.path.exists(image_path):
             os.mkdir(image_path)
 
-        filename = time + ".jpg"
+        # if time.lower().endswith("PM"):
+        #     time.replace("PM",)
+            
+        filename = time.replace("PM", "") + ".jpg"
         print(filename)
         image_path = os.path.join(image_path, filename)
 
@@ -662,8 +665,10 @@ class ProctoringController:
                     student_present = 1 if is_match else 0,
                     other_person = 1 if other_person else 0,
                     other_suspicous = 1 if is_content_suspicious else 0,
-                    start_time = datetime.fromisoformat(start_time),
-                    end_time = datetime.fromisoformat(end_time),
+                    # start_time = start_time,
+                    # end_time = end_time,
+                    # start_time = datetime.fromisoformat(start_time),
+                    # end_time = datetime.fromisoformat(end_time),
                     is_suspicious = suspicious
                 )
                 
@@ -682,8 +687,8 @@ class ProctoringController:
                     student_present = 1 if is_match else 0,
                     other_person = 1 if other_person else 0,
                     other_suspicous = 1 if is_content_suspicious else 0,
-                    start_time = datetime.fromisoformat(start_time),
-                    end_time = datetime.fromisoformat(end_time),
+                    # start_time = datetime.fromisoformat(start_time),
+                    # end_time = datetime.fromisoformat(end_time),
                     is_suspicious = suspicious
                 )
                 
@@ -1801,13 +1806,17 @@ class ProctoringController:
         return 20, 10
 
     @staticmethod
-    async def VoiceProctoringDiarize(file: UploadFile, attempt_id: int, identity_no: str, question_id: int, exam_type: str, start_time: str, end_time: str, db: Session):
+    async def VoiceProctoringDiarize(file: UploadFile, attempt_id: int, identity_no: str, question_id: int, exam_type: str, db: Session):
         '''
         Diarization-aware voice monitoring.
         Single speaker  → standard ECAPA verify, plain transcript on mismatch.
         Multiple speakers → labeled transcript (Student/Other), student-only ECAPA score.
         Suspicious audio always saved to DB.
         '''
+        start_time = datetime.now()
+        end_time = datetime.now()
+        
+        
         examAttempt = db.query(ExamAttempt).filter(ExamAttempt.ID == attempt_id).first()
         if not examAttempt:
             return {'fail': 'no student record found.'}
@@ -1830,10 +1839,10 @@ class ProctoringController:
         print(f'[DIARIZE] Audio saved: {relative_path}')
 
         # STEP 3: Parse frontend timestamp. Fallback to server time if invalid/missing.
-        try:
-            chunk_timestamp = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-        except Exception:
-            chunk_timestamp = datetime.now()
+        # try:
+        #     chunk_timestamp = datetime.fromisoformat(start_time.replace("Z", "+00:00"))  # type: ignore
+        # except Exception: 
+        #     chunk_timestamp = datetime.now()
 
         # STEP 4: ECAPA sliding-window diarization — classifies each window as STUDENT or OTHER
         try:
@@ -1916,7 +1925,7 @@ class ProctoringController:
             other_combined = " ".join(t.strip() for t in other_texts)
             is_content_suspicious, nli_score = ProctoringController._is_transcript_suspicious(other_combined)
 
-            ProctoringController.save_audio_to_db(db, exam_type, attempt_id, question_id, relative_path, labeled_transcript, is_match, True, is_content_suspicious, start_time, end_time)
+            ProctoringController.save_audio_to_db(db, exam_type, attempt_id, question_id, relative_path, labeled_transcript, is_match, True, True, start_time, end_time)
 
             print('last matched')
 

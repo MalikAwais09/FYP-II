@@ -235,7 +235,8 @@ class ExamController:
             else:
                 new_record = ExamAttempt(
                     studentID = data.s_id,
-                    examID = data.e_id
+                    examID = data.e_id,
+                    back_cam = 1
                 )
                 db.add(new_record)
                 db.commit()

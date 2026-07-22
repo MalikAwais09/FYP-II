@@ -19,8 +19,8 @@ from Schemas.ExamConfigSchema import ExamProctoringConfigCreate
 
 
 
-image_base_url = 'http://192.168.100.110:8000/images/'
-audio_base_url = 'http://192.168.100.110:8000/audios/'
+image_base_url = 'http://192.168.154.204:8000/images/'
+audio_base_url = 'http://192.168.154.204:8000/audios/'
 
 
 
@@ -314,11 +314,11 @@ class TeacherController:
         # FROM studentExamlog sl 
         # JOIN examAttempt ea on ea.id = sl.attempt_id
         # JOIN Student s on s.StudentID = ea.studentID
-        start_time = datetime.strptime(data.startTime, "%H:%M:%S").time()
-        end_time   = datetime.strptime(data.endTime,   "%H:%M:%S").time()
+        # start_time = datetime.strptime(data.startTime, "%H:%M:%S").time()
+        # end_time   = datetime.strptime(data.endTime,   "%H:%M:%S").time()
         
         # WHERE ea.studentID = 1 and ea.examID = 2
-        print(f'student id: {data.std_id}, exam id: {data.exam_id}, statrt time: {data.startTime}, end time: {data.endTime}')
+        # print(f'student id: {data.std_id}, exam id: {data.exam_id}, statrt time: {data.startTime}, end time: {data.endTime}')
         try:
             result = db.query( 
                 func.count().label('total'),
@@ -339,7 +339,7 @@ class TeacherController:
             ).filter(
                 ExamAttempt.studentID == data.std_id,
                 ExamAttempt.examID == data.exam_id, 
-                cast(StudentExamLog.TIMESTAMP, TIME).between(start_time, end_time)
+                # cast(StudentExamLog.TIMESTAMP, TIME).between(start_time, end_time)
                 # cast(StudentExamLog.TIMESTAMP, Time).between(data.startTime, data.endTime)
             ).first()
             
@@ -378,7 +378,7 @@ class TeacherController:
             ).filter(
                 ExamAttempt.studentID == data.std_id, 
                 ExamAttempt.examID == data.exam_id,
-                cast(StudentExamLog.TIMESTAMP, Time).between(data.startTime, data.endTime),
+                # cast(StudentExamLog.TIMESTAMP, Time).between(data.startTime, data.endTime),
                 # StudentExamLog.position != 'straight'
             ).all()
             print(f'length: {len(result)}')

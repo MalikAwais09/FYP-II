@@ -63,3 +63,8 @@ def createOrUpdateExamConfig(examId: int, config_data: ExamProctoringConfigCreat
 @router.get('/examConfig/{examId}')
 def getExamConfig(examId: int, db: Session = Depends(get_db)):
     return TeacherController.getExamConfig(examId, db)
+
+
+@router.get('/get_top_and_worst_students')
+def get_top_and_worst_students(db: Session = Depends(get_db)):
+    return TeacherController.get_top_and_worst_students(db)

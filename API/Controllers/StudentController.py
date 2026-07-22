@@ -1,6 +1,6 @@
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
-
+from API.Controllers.ProctoringController import ProctoringController
 from sqlalchemy.orm import Session
 # import Models
 from Models import (CourseAllocation, CourseEnrollment, CourseOffering, Student, Teacher, Users, Course, Exam, ExamMCQ,MCQOption,MCQAns, ExamAttempt, Section)
@@ -256,3 +256,43 @@ class StudentController:
         except Exception as e:
             db.rollback()
             return {'error': f'Database error: {e}'}
+        
+        
+    @staticmethod
+    def isStudentCheating(stdId: int, examId: int, db: Session):
+        
+        try:
+            cheating_result = ProctoringController.compute_cheating(stdId, examId, db)
+            
+            is_cheating = (
+                        cheating_result.get('face_percentage', 0) > 0 or
+                        cheating_result.get('voice_percentage', 0) > 0 or
+                        cheating_result.get('is_object_suspicious', False)
+                    )
+                    
+            return {"success": is_cheating}
+        
+        except Exception as e:
+            return {"success": False}        
+    
+    
+    @staticmethod
+    def isStudentCheatingAttempt(attemptId: int, db: Session):
+        
+        try:
+            examAttempt = db.query(ExamAttempt).filter(ExamAttempt.ID == attemptId).first()
+            cheating_result = ProctoringController.compute_cheating(examAttempt.studentID, examAttempt.examID, db) #type: ignore
+            
+            is_cheating = (
+                        cheating_result.get('face_percentage', 0) > 0 or
+                        cheating_result.get('voice_percentage', 0) > 0 or
+                        cheating_result.get('is_object_suspicious', False)
+                    )
+                    
+            return {"success": is_cheating}
+        
+        except Exception as e:
+            return {"success": False}        
+    
+    
+    
